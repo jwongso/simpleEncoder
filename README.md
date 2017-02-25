@@ -2,6 +2,7 @@
 Very simple wave encoder
 
 Input: folder contains .wav/.wave files
+
 Output: all encoded files within the input folders with different encoding format/extension.
 
 Encoder:
