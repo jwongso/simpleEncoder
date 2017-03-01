@@ -35,6 +35,7 @@ public:
     {
         uint32_t thread_id;
         std::map< std::string, bool >* input_files;
+        bool* cancelled;
         Callback callback;
     };
 
@@ -63,6 +64,7 @@ private:
     std::string m_encoder_version;
     uint16_t m_thread_number;
     std::map< std::string, bool > m_to_be_encoded_files;
+    bool m_cancelled;
     std::deque< std::string > m_status;
     mutable std::mutex m_mutex;
 };

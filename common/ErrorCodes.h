@@ -45,6 +45,7 @@ enum ErrorCode
     ERROR_NONE = 0,
     ERROR_NOT_FOUND,
     ERROR_READ_FILE,
+    ERROR_CANCELLED,
     /// utils
     ERROR_WAVE_INVALID,
     /// core specific error codes
