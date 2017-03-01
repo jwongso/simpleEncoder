@@ -37,6 +37,7 @@ endif()
 
 include(ExternalProject)
 ExternalProject_Add(libmp3lame
+    URL https://sourceforge.net/projects/lame/files/lame/3.99/lame-3.99.5.tar.gz/download
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/${LAME_DIR}
     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/externals/${LAME_DIR}/configure --prefix=${LAME_BIN}
     BUILD_COMMAND ${MAKE})
