@@ -45,3 +45,4 @@ Thumbs.db
 # Directory #
 #############
 externals/
+test/
