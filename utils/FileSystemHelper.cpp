@@ -407,4 +407,4 @@ FileSystemHelper::get_file_paths( const std::string& directory_path,
 
 // -------------------------------------------------------------------------------------------------
 
-}  // namespace ce_dev
+}  // utils
