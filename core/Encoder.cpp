@@ -13,7 +13,7 @@
 
 #include "Encoder.h"
 #include "utils/FileSystemHelper.h"
-#include "utils/WAVEHelper.h"
+#include "utils/WaveFileWrapper.h"
 
 namespace core
 {
@@ -59,7 +59,8 @@ Encoder::scan_input_directory( const std::string& dir )
         files.erase( std::remove_if( files.begin( ), files.end( ),
                                      [ & ] ( const std::string& filename )
         {
-            return ( !utils::WAVEHelper::validate( filename ) );
+            utils::WaveHeader header;
+            return ( !utils::WaveFileWrapper::validate( filename, header ) );
         } ), files.end( ) );
     }
 

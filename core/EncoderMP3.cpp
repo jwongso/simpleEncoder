@@ -10,7 +10,7 @@
 // -------------------------------------------------------------------------------------------------
 
 #include "EncoderMP3.h"
-#include "utils/WAVEHelper.h"
+#include "utils/WaveFileWrapper.h"
 
 #include <lame/lame.h>
 #include <iostream>
@@ -134,19 +134,33 @@ EncoderMP3::processing_files( void* arg )
         lame_set_brate( g_lame_flags, 128 );
         lame_set_quality( g_lame_flags, 3 );
 
-        utils::WAVEHelper::WAVEHeader header;
+        utils::WaveHeader header;
+        utils::WaveFileWrapper wave( input_file );
+
+        if ( !wave.is_valid( ) )
+        {
+            error = common::ErrorCode::ERROR_WAVE_INVALID;
+            fprintf( stderr, "Invalid wave file: %s at %s:%d",
+                     input_file.c_str( ), __FILE__, __LINE__ );
+            log( callback, thread_id,
+                 "Invalid wave file: " + input_file );
+
+            break;
+        }
+
         int16_t* left = NULL;
         int16_t* right = NULL;
 
         log( callback, thread_id, "reading PCM data from " + input_file );
 
-        if ( !utils::WAVEHelper::get_wave_data( input_file, header, left, right ) )
+        if ( !wave.get_wave_data( header, left, right ) )
         {
             error = common::ErrorCode::ERROR_READ_FILE;
             fprintf( stderr, "Error utils::WAVEHelper::get_wave_data() at %s:%d",
                      __FILE__, __LINE__ );
             log( callback, thread_id,
                  "Error while reading PCM data from " + input_file );
+
             break;
         }
 
@@ -165,6 +179,7 @@ EncoderMP3::processing_files( void* arg )
             fprintf( stderr, "Error lame_init_params() returned %d at %s:%d",
                      err, __FILE__, __LINE__ );
             log( callback, thread_id, "Error while initializing LAME" );
+
             break;
         }
 
@@ -188,6 +203,7 @@ EncoderMP3::processing_files( void* arg )
                      encoded_size, __FILE__, __LINE__ );
             log( callback, thread_id,
                  "Error while encoding PCM data from " + input_file );
+
             break;
         }
 
@@ -201,6 +217,7 @@ EncoderMP3::processing_files( void* arg )
                      __FILE__, __LINE__ );
             log( callback, thread_id,
                  "Error while writing encoded data to " + output_file );
+
             break;
         }
 

@@ -46,8 +46,7 @@ enum ErrorCode
     ERROR_NOT_FOUND,
     ERROR_READ_FILE,
     /// utils
-    ERROR_RIFF_NOT_FOUND,
-    ERROR_WAVE_NOT_FOUND,
+    ERROR_WAVE_INVALID,
     /// core specific error codes
     ERROR_NOT_IMPLEMENTED,
     ERROR_PTHREAD_CREATE,
