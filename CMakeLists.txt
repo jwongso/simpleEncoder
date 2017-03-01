@@ -42,7 +42,9 @@ ExternalProject_Add(libmp3lame
     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/externals/${LAME_DIR}/configure --prefix=${LAME_BIN}
     BUILD_COMMAND ${MAKE})
 
-aux_source_directory(. SRC_LIST)
+set(SOURCE
+    main.cpp)
+
 aux_source_directory(common SRC_COMMON)
 aux_source_directory(utils SRC_UTILS)
 aux_source_directory(core SRC_CORE)
@@ -52,7 +54,7 @@ if(BUILD_TESTS_APP)
 endif()
 
 list(APPEND ALL_FILES
-    ${SRC_LIST}
+    ${SOURCE}
     ${SRC_COMMON}
     ${SRC_CORE}
     ${SRC_UTILS})
