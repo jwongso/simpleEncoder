@@ -1,0 +1,56 @@
+{
+	"build_systems":
+	[
+		{
+			"file_regex": "(.+[^:]):(\\d+):(\\d+): (?:fatal )?((?:error|warning): .+)$",
+			"name": "simpleEncoder",
+			"shell_cmd": "make -j4",
+			"variants":
+			[
+				{
+					"name": "clean",
+					"shell_cmd": "make clean -j4"
+				},
+				{
+					"name": "rebuild_cache",
+					"shell_cmd": "make rebuild_cache -j4"
+				},
+				{
+					"name": "libmp3lame",
+					"shell_cmd": "make libmp3lame -j4"
+				},
+				{
+					"name": "simpleEncoder",
+					"shell_cmd": "make simpleEncoder -j4"
+				}
+			],
+			"working_dir": "build"
+		}
+	],
+	"cmake":
+	{
+		"build_folder": "build"
+	},
+	"folders":
+	[
+		{
+			"file_exclude_patterns":
+			[
+				".gitignore",
+				"*.yml",
+				"*.sublime-project"
+			],
+			"folder_exclude_patters":
+			[
+				".git",
+				"build",
+				"externals"
+			],
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"tab_size": 4
+	}
+}
