@@ -9,8 +9,8 @@
 //
 // -------------------------------------------------------------------------------------------------
 
-#ifndef ENCODER_H
-#define ENCODER_H
+#ifndef DECODER_H
+#define DECODER_H
 
 #include <string>
 #include <vector>
@@ -21,25 +21,25 @@
 namespace core
 {
 
-class Encoder
+class Decoder
 {
 public:
 
-    Encoder( ) = delete;
+    Decoder( ) = delete;
 
-    virtual ~Encoder( );
+    virtual ~Decoder( );
 
     common::ErrorCode scan_input_directory( const std::string& dir );
 
     const std::vector< std::string >& get_input_files( ) const;
 
-    virtual common::ErrorCode start_encoding( ) = 0;
+    virtual common::ErrorCode start_decoding( ) = 0;
 
-    virtual common::ErrorCode cancel_encoding( ) = 0;
+    virtual common::ErrorCode cancel_decoding( ) = 0;
 
 protected:
 
-    Encoder( common::AudioFormatType input_type, common::AudioFormatType output_type );
+    Decoder( common::AudioFormatType input_type, common::AudioFormatType output_type );
 
 protected:
 
@@ -51,4 +51,4 @@ protected:
 
 } // core
 
-#endif // ENCODER_H
+#endif // DECODER_H

@@ -70,8 +70,8 @@ log( const EncoderMP3::Callback& callback, uint32_t id, const std::string& statu
 
 // -------------------------------------------------------------------------------------------------
 
-EncoderMP3::EncoderMP3( InputAudioType input_type, uint16_t thread_number )
-    : Encoder( input_type, OutputEncoderType::OUTPUT_MP3 )
+EncoderMP3::EncoderMP3( common::AudioFormatType input_type, uint16_t thread_number )
+    : Encoder( input_type, common::AudioFormatType::MP3 )
     , m_encoder_version( LAME + get_lame_version( ) )
     , m_thread_number( thread_number )
     , m_cancelled( false )
@@ -150,7 +150,7 @@ EncoderMP3::processing_files( void* arg )
 
         if ( !wave.is_valid( ) )
         {
-            error = common::ErrorCode::ERROR_WAVE_INVALID;
+            error = common::ErrorCode::ERROR_WAV_INVALID;
             fprintf( stderr, "Invalid wave file: %s at %s:%d\n",
                      input_file.c_str( ), __FILE__, __LINE__ );
             log( callback, thread_id,

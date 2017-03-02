@@ -17,7 +17,7 @@
 namespace utils
 {
 
-/// Total header site = 44 up to 48 bytes.
+/// Total header size = 44 up to 48 bytes.
 struct WaveHeader
 {
     char riff[ 4 ];                     /// "RIFF" (4 bytes)

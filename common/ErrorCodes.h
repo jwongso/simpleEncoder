@@ -1,11 +1,11 @@
 // -------------------------------------------------------------------------------------------------
 //
-// Copyright (C) Juniarto Saputra (juniarto.wongso@gmail.com). All rights reserved.
+// Copyright (C) all of the contributors. All rights reserved.
 //
 // This software, including documentation, is protected by copyright controlled by
-// me. All rights are reserved. Copying, including reproducing, storing,
+// contributors. All rights are reserved. Copying, including reproducing, storing,
 // adapting or translating, any or all of this material requires the prior written
-// consent of Juniarto Saputra.
+// consent of all contributors.
 //
 // -------------------------------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ enum ErrorCode
     ERROR_READ_FILE,
     ERROR_CANCELLED,
     /// utils
-    ERROR_WAVE_INVALID,
+    ERROR_WAV_INVALID,
     /// core specific error codes
     ERROR_NOT_IMPLEMENTED,
     ERROR_PTHREAD_CREATE,

@@ -41,7 +41,7 @@ public:
 
 public:
 
-    EncoderMP3( InputAudioType input_type, uint16_t thread_number = 1 );
+    EncoderMP3( common::AudioFormatType input_type, uint16_t thread_number = 1 );
 
     ~EncoderMP3( ) override;
 

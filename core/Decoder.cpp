@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-#include "Encoder.h"
+#include "Decoder.h"
 #include "utils/FileSystemHelper.h"
 #include "utils/WaveFileWrapper.h"
 
@@ -20,7 +20,7 @@ namespace core
 
 // -------------------------------------------------------------------------------------------------
 
-Encoder::Encoder( common::AudioFormatType input_type, common::AudioFormatType output_type )
+Decoder::Decoder( common::AudioFormatType input_type, common::AudioFormatType output_type )
     : m_input_type( input_type )
     , m_output_type( output_type )
 {
@@ -28,14 +28,14 @@ Encoder::Encoder( common::AudioFormatType input_type, common::AudioFormatType ou
 
 // -------------------------------------------------------------------------------------------------
 
-Encoder::~Encoder( )
+Decoder::~Decoder( )
 {
 }
 
 // -------------------------------------------------------------------------------------------------
 
 common::ErrorCode
-Encoder::scan_input_directory( const std::string& dir )
+Decoder::scan_input_directory( const std::string& dir )
 {
     if ( !utils::FileSystemHelper::directory_exists( dir ) )
     {
@@ -49,7 +49,7 @@ Encoder::scan_input_directory( const std::string& dir )
         return common::ErrorCode::ERROR_NOT_FOUND;
     }
 
-    if ( m_input_type == common::AudioFormatType::WAV )
+    if ( m_input_type == common::AudioFormatType::MP3 )
     {
         files.erase( std::remove_if( files.begin( ), files.end( ),
                                      [ & ] ( const std::string& filename )
@@ -67,7 +67,7 @@ Encoder::scan_input_directory( const std::string& dir )
 // -------------------------------------------------------------------------------------------------
 
 const std::vector< std::string >&
-Encoder::get_input_files() const
+Decoder::get_input_files() const
 {
     return m_input_files;
 }

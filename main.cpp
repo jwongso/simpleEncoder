@@ -90,7 +90,7 @@ main(int argc, char *argv[])
         }
     }
 
-    core::EncoderMP3 encoder_mp3( core::Encoder::InputAudioType::INPUT_WAV, core_number );
+    core::EncoderMP3 encoder_mp3( common::AudioFormatType::WAV, core_number );
 
     auto error = encoder_mp3.scan_input_directory( path );
 
