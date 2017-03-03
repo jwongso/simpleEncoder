@@ -13,7 +13,7 @@
 
 #include "Decoder.h"
 #include "utils/FileSystemHelper.h"
-#include "utils/WaveFileWrapper.h"
+#include "utils/Mp3FileWrapper.h"
 
 namespace core
 {
@@ -54,8 +54,9 @@ Decoder::scan_input_directory( const std::string& dir )
         files.erase( std::remove_if( files.begin( ), files.end( ),
                                      [ & ] ( const std::string& filename )
         {
-            utils::WaveHeader header;
-            return ( !utils::WaveFileWrapper::validate( filename, header ) );
+            std::vector< utils::ID3Tag > tags;
+            utils::Mp3Header header;
+            return ( !utils::Mp3FileWrapper::validate( filename, tags, header ) );
         } ), files.end( ) );
     }
 

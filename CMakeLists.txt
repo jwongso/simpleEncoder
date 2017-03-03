@@ -65,8 +65,9 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 if(ENABLE_FILE_LOG)
     target_compile_definitions(${PROJECT_NAME}
-        PRIVATE ENCODER_ENABLE_LOG
-        PRIVATE ENCODER_LOG_FILE="./encoding.log")
+        PRIVATE ENABLE_LOG
+        PRIVATE ENCODER_LOG_FILE="./encoding.log"
+        PRIVATE DECODER_LOG_FILE="./decoding.log")
 endif()
 
 set(LAME_LIBRARY ${LAME_BIN}/lib/${LAME_PREFIX}mp3lame${LAME_SUFFIX})

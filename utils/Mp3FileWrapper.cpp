@@ -11,6 +11,7 @@
 
 #include "Mp3FileWrapper.h"
 #include "FileSystemHelper.h"
+#include "Helper.h"
 
 #include <cstring>
 #include <fstream>
@@ -23,42 +24,15 @@ namespace
 {
 
 const char* ID3                         = "ID3";
+const char* COMM                        = "COMM";
 
+#define ID3_FRAME_ID_LENGTH             4
 #define ID3_FLAG_FOOTER_PRESENT         0
 #define ID3_FLAG_EXPERIMENTAL_INDICATOR 1
 #define ID3_FLAG_EXTENDED_HEADER        2
 #define ID3_FLAG_UNSYNCHRONISATION      3
 
 // -------------------------------------------------------------------------------------------------
-
-template< class T >
-void
-read_as_chars( const std::vector< T >& input, uint32_t pos, uint32_t length, char* target )
-{
-    if ( sizeof( target ) / sizeof( char ) < length )
-    {
-        return;
-    }
-
-    std::copy( input.begin( ) + pos, input.begin( ) + ( pos + length ), target );
-}
-
-template< class T >
-uint32_t
-read_as_uint32( const std::vector< T >& input, uint32_t pos )
-{
-    return ( input[ pos ] |
-           ( input[ pos + 1 ] << 8 ) |
-           ( input[ pos + 2 ] << 16 ) |
-           ( input[ pos + 3 ] << 24 ) );
-}
-
-template< class T >
-uint16_t
-read_as_uint16( const std::vector< T >& input, uint32_t pos )
-{
-    return ( input[ pos ] << 0 ) | ( input[ pos + 1 ] << 8 );
-}
 
 bool
 get_flags( const uint8_t flag, ID3Tag& tag )
@@ -84,6 +58,68 @@ get_flags( const uint8_t flag, ID3Tag& tag )
     }
 
     return true;
+}
+
+void
+get_mpeg_version_layer_crc( const uint8_t val, Mp3Header& header )
+{
+    if ( ( val & 0x10 ) == 0x10 && ( val & 0x08 ) == 0x08 )
+    {
+        header.mpeg_version = 1;
+    }
+    else if ( ( val & 0x10) == 0x10 && ( val & 0x08 ) != 0x08 )
+    {
+        header.mpeg_version = 2;
+    }
+    else if ( ( val & 0x10 ) != 0x10 && ( val & 0x08 ) == 0x08 )
+    {
+        header.mpeg_version = 0;
+    }
+    else if ( ( val & 0x10 ) != 0x10 && ( val & 0x08 ) != 0x08 )
+    {
+        header.mpeg_version = 2.5;
+    }
+    else
+    {
+        header.mpeg_version = 0;
+    }
+
+    uint8_t layer = val << 5;
+    layer = val >> 6;
+    header.layer = 4 - layer;
+
+    header.crc = val & 0x01;
+}
+
+void
+get_sampling_rate( const uint8_t val, Mp3Header& header )
+{
+    const int rates[ 3 ][ 3 ] = { 44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000 };
+
+    for ( int version = 1; version <= 3; version++ )
+    {
+        if ( header.mpeg_version == version )
+        {
+            if ( ( val & 0x08 ) != 0x08 && ( val & 0x04 ) != 0x04 )
+            {
+                header.sampling_rate = rates[ version - 1 ][ 0 ];
+
+                break;
+            }
+            else if ( ( val & 0x08 ) != 0x08 && ( val & 0x04 ) == 0x04 )
+            {
+                header.sampling_rate = rates[ version - 1 ][ 1 ];
+
+                break;
+            }
+            else if ( ( val & 0x08 ) == 0x08 && ( val & 0x04 ) != 0x04 )
+            {
+                header.sampling_rate = rates[ version - 1 ][ 2 ];
+
+                break;
+            }
+        }
+    }
 }
 
 }
@@ -161,7 +197,7 @@ Mp3FileWrapper::validate( const std::string& filename,
 
     uint32_t pos = 0;
     get_id3tags( contents, id3tags, pos );
-
+    return get_mp3header( contents, pos, header );
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -177,7 +213,7 @@ Mp3FileWrapper::get_id3tags( const std::vector< uint8_t >& contents,
     while ( id3_exists )
     {
         ID3Tag id3tag;
-        read_as_chars( contents, pos, 3, id3tag.id3 );
+        Helper::read_as_chars( contents, pos, 3, id3tag.id3 );
 
         if ( strncmp( id3tag.id3, ID3, 3 ) != 0 )
         {
@@ -187,68 +223,135 @@ Mp3FileWrapper::get_id3tags( const std::vector< uint8_t >& contents,
         }
 
         pos += sizeof( id3tag.id3 );
-        read_as_chars( contents, pos, 2, id3tag.version );
-        pos += sizeof( id3tag.version );
 
+        id3tag.version_major = contents[ pos ];
+        pos += sizeof( id3tag.version_major );
+        id3tag.version_revision = contents[ pos ];
+        pos += sizeof( id3tag.version_major );
+
+        bool id3v2 = false;
+        // Check whether id3v2 or v1
         if ( get_flags( contents[ pos ], id3tag ) )
         {
+            id3v2 = true;
             pos += sizeof( uint8_t );
-            id3tag.offset = read_as_uint32( contents, pos );
+            id3tag.offset = Helper::read_as_uint32_big( contents, pos );
             pos += sizeof( id3tag.offset );
 
-            uint32_t size = read_as_uint32( contents, pos );
-
-            if ( id3tag.flags[ ID3_FLAG_EXTENDED_HEADER ] )
+            if ( id3tag.flags[ ID3_FLAG_EXTENDED_HEADER ] == true )
             {
+                uint32_t size = Helper::read_as_uint32_big( contents, pos );
                 id3tag.extended_size = size;
+                pos += id3tag.extended_size;
             }
             else
             {
                 id3tag.extended_size = 0;
             }
+        }
 
-            pos += id3tag.extended_size;
+        int footer_size = id3tag.flags[ ID3_FLAG_FOOTER_PRESENT ] * 10;
+        int frame_size = id3tag.offset - id3tag.extended_size - footer_size;
 
-            int footer_size = id3tag.flags[ ID3_FLAG_FOOTER_PRESENT ] * 10;
-            int frame_size = id3tag.offset - id3tag.extended_size - footer_size;
+        std::regex reg( "[A-Z0-9]" );
 
-            std::regex reg( "[A-Z0-9]" );
+        while( std::regex_match( ( std::string ) { ( char )contents[ pos ] }, reg ) &&
+               pos < frame_size )
+        {
+            std::string key;
+            std::string value;
+            int field_size = 0;
 
-            while( !std::regex_match( ( std::string ) { ( char )contents[ pos ] }, reg ) &&
-                   pos < frame_size )
+            for ( int i = pos; i < pos + ID3_FRAME_ID_LENGTH; i++ )
             {
-                std::string id;
-                std::string content;
-                int field_size = 0;
-
-                for ( int i = pos; i < pos + 4; i++ )
-                {
-                    id += contents[ i ];
-                }
-
-                id3tag.frames[ 0 ].push_back( id );
-
-                pos += 4;
-                field_size = read_as_uint32( contents, pos );
-
-                pos += 6;
-
-                for ( int i = pos; i < pos + field_size; i++ )
-                {
-                    content += contents[ i ];
-                }
-
-                id3tag.frames[ 1 ].push_back( content );
-
-                pos += field_size;
+                key += contents[ i ];
             }
+
+            pos += ID3_FRAME_ID_LENGTH;
+            field_size = Helper::read_as_uint32_big( contents, pos );
+
+            // Skipping the flags bytes (2 bytes) + 4 bytes of previous field size
+            pos += 6;
+
+            for ( int i = pos; i < pos + field_size; i++ )
+            {
+                if ( key[ 0 ] == 'T' )
+                {
+                    if ( id3v2 )
+                    {
+                        // We skip the 1. byte since it's only about encoding:
+                        // 00 = Latin ISO 8859-1 and 01 = Unicode
+                        if ( i != pos )
+                        {
+                            value += contents[ i ];
+                        }
+                    }
+                    else
+                    {
+                        value += contents[ i ];
+                    }
+                }
+                else if ( key == COMM )
+                {
+                    if ( id3v2 )
+                    {
+                        // We skip the first 4 bytes for Comments frame because:
+                        // 1. byte is text encoding, and the next 3 bytes are used for language
+                        if ( i > pos + 4 )
+                        {
+                            value += contents[ i ];
+                        }
+                    }
+                    else
+                    {
+                        value += contents[ i ];
+                    }
+                }
+            }
+
+            id3tag.frames[ key ] = value;
+
+            pos += field_size;
         }
 
         id3tags.push_back( id3tag );
-        pos += id3tag.offset + 10;
+        pos = id3tag.offset + 10;
     }
 
     last_pos = pos;
+
+    return id3_exists;
+}
+
+// -------------------------------------------------------------------------------------------------
+
+bool
+Mp3FileWrapper::get_mp3header( const std::vector< uint8_t >& contents,
+                               const uint32_t offset,
+                               Mp3Header& header )
+{
+    uint32_t pos = offset;
+
+    if ( pos >= contents.size( ) )
+    {
+        return false;
+    }
+
+    if ( contents[ pos ] != 0xFF ) // 0
+    {
+        return false;
+    }
+
+    get_mpeg_version_layer_crc( contents[ pos + 1 ], header ); // 1
+
+    header.info[ 0 ] = contents[ pos + 2 ] & 0x01; // 2
+    header.info[ 1 ] = contents[ pos + 3 ] & 0x08; // 3
+    header.info[ 2 ] = contents[ pos + 4 ] & 0x04; // 4
+
+    header.emphasis = contents[ pos + 3 ] << 6; // 3
+    header.emphasis = header.emphasis >> 6;
+
+    get_sampling_rate( contents[ pos + 2 ], header ); // 2
 }
 
 // -------------------------------------------------------------------------------------------------

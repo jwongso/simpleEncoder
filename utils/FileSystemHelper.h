@@ -9,8 +9,8 @@
 //
 // -------------------------------------------------------------------------------------------------
 
-#ifndef FILE_HELPER_H
-#define FILE_HELPER_H
+#ifndef FILE_SYSTEM_HELPER_H
+#define FILE_SYSTEM_HELPER_H
 
 #include <stdint.h>
 #include <string>
@@ -18,6 +18,7 @@
 
 namespace utils
 {
+
 class FileSystemHelper
 {
 public:
@@ -44,4 +45,4 @@ public:
 
 }  // utils
 
-#endif  // FILE_HELPER_H
+#endif  // FILE_SYSTEM_HELPER_H

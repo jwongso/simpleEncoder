@@ -11,11 +11,10 @@
 
 #include "EncoderMP3.h"
 #include "utils/WaveFileWrapper.h"
+#include "utils/Helper.h"
 
 #include <lame/lame.h>
 #include <iostream>
-//#include <chrono>
-//#include <iomanip>
 #include <sstream>
 #include <fstream>
 
@@ -27,45 +26,6 @@ namespace
 const std::string LAME = "Lame ";
 const std::string OUTPUT_EXT = ".mp3";
 static pthread_mutex_t process_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-// -------------------------------------------------------------------------------------------------
-
-std::string
-generate_output_file( const std::string& input_file )
-{
-    std::string output;
-
-    size_t pos = input_file.find_last_of( "." );
-
-    if ( pos == std::string::npos )
-    {
-        // File has no extension. Just append .mp3 extension.
-        output = input_file + OUTPUT_EXT;
-    }
-    else
-    {
-        output = input_file.substr( 0, pos );
-        output += OUTPUT_EXT;
-    }
-
-    return output;
-}
-
-void
-log( const EncoderMP3::Callback& callback, uint32_t id, const std::string& status )
-{
-//    auto now = std::chrono::system_clock::now( );
-//    auto time = std::chrono::system_clock::to_time_t( now );
-//    auto ms = std::chrono::duration_cast< std::chrono::milliseconds >( now.time_since_epoch( ) ) -
-//              std::chrono::duration_cast< std::chrono::seconds >( now.time_since_epoch( ) );
-
-//    std::ostringstream oss;
-//    oss << std::put_time(std::localtime(&time), "%H:%M:%S." );
-//    oss << ms.count();
-
-    callback( "oss.str( )", "Thread id: " + std::to_string( id ) + ", " + status );
-}
-
 } // namespace
 
 // -------------------------------------------------------------------------------------------------
@@ -124,7 +84,7 @@ EncoderMP3::processing_files( void* arg )
         {
             error = common::ErrorCode::ERROR_CANCELLED;
             fprintf( stderr, "Cancel running operations at %s:%d\n", __FILE__, __LINE__ );
-            log( callback, thread_id,
+            utils::Helper::log( callback, thread_id,
                  "Cancelled " + input_file );
 
             break;
@@ -137,9 +97,9 @@ EncoderMP3::processing_files( void* arg )
             break;
         }
 
-        log( callback, thread_id, "Processing " + input_file );
+        utils::Helper::log( callback, thread_id, "Processing " + input_file );
 
-        std::string output_file = generate_output_file( input_file );
+        std::string output_file = utils::Helper::generate_output_file( input_file, OUTPUT_EXT );
 
         lame_global_flags* g_lame_flags = lame_init( );
         lame_set_brate( g_lame_flags, 128 );
@@ -153,8 +113,7 @@ EncoderMP3::processing_files( void* arg )
             error = common::ErrorCode::ERROR_WAV_INVALID;
             fprintf( stderr, "Invalid wave file: %s at %s:%d\n",
                      input_file.c_str( ), __FILE__, __LINE__ );
-            log( callback, thread_id,
-                 "Invalid wave file: " + input_file );
+            utils::Helper::log( callback, thread_id, "Invalid wave file: " + input_file );
 
             break;
         }
@@ -162,15 +121,15 @@ EncoderMP3::processing_files( void* arg )
         int16_t* left = NULL;
         int16_t* right = NULL;
 
-        log( callback, thread_id, "reading PCM data from " + input_file );
+        utils::Helper::log( callback, thread_id, "reading PCM data from " + input_file );
 
         if ( !wave.get_wave_data( header, left, right ) )
         {
             error = common::ErrorCode::ERROR_READ_FILE;
             fprintf( stderr, "Error utils::WAVEHelper::get_wave_data() at %s:%d\n",
                      __FILE__, __LINE__ );
-            log( callback, thread_id,
-                 "Error while reading PCM data from " + input_file );
+            utils::Helper::log( callback, thread_id,
+                                "Error while reading PCM data from " + input_file );
 
             break;
         }
@@ -180,7 +139,7 @@ EncoderMP3::processing_files( void* arg )
         lame_set_num_samples( g_lame_flags, samples );
         lame_set_bWriteVbrTag( g_lame_flags, 0 );
 
-        log( callback, thread_id, "Initializing LAME" );
+        utils::Helper::log( callback, thread_id, "Initializing LAME" );
 
         auto err = lame_init_params( g_lame_flags );
 
@@ -189,7 +148,7 @@ EncoderMP3::processing_files( void* arg )
             error = common::ErrorCode::ERROR_LAME;
             fprintf( stderr, "Error lame_init_params() returned %d at %s:%d\n",
                      err, __FILE__, __LINE__ );
-            log( callback, thread_id, "Error while initializing LAME" );
+            utils::Helper::log( callback, thread_id, "Error while initializing LAME" );
 
             break;
         }
@@ -197,7 +156,7 @@ EncoderMP3::processing_files( void* arg )
         uint32_t buffer_size = 1.25 * samples + 7200;
         uint8_t* mp3_buffer = new uint8_t[ buffer_size ];
 
-        log( callback, thread_id, "Start encoding ..." );
+        utils::Helper::log( callback, thread_id, "Start encoding ..." );
 
         auto encoded_size = lame_encode_buffer( g_lame_flags,
                                                 left,
@@ -212,13 +171,13 @@ EncoderMP3::processing_files( void* arg )
             error = common::ErrorCode::ERROR_LAME;
             fprintf( stderr, "Error lame_encode_buffer() returned %d at %s:%d\n",
                      encoded_size, __FILE__, __LINE__ );
-            log( callback, thread_id,
-                 "Error while encoding PCM data from " + input_file );
+            utils::Helper::log( callback, thread_id,
+                                "Error while encoding PCM data from " + input_file );
 
             break;
         }
 
-        log( callback, thread_id, "Receiving and writing encoded data" );
+        utils::Helper::log( callback, thread_id, "Receiving and writing encoded data" );
 
         FILE* output = fopen( output_file.c_str( ), "wb+" );
         if ( !output )
@@ -226,19 +185,19 @@ EncoderMP3::processing_files( void* arg )
             error = common::ErrorCode::ERROR_IO;
             fprintf( stderr, "Error fopen() returned at %s:%d\n",
                      __FILE__, __LINE__ );
-            log( callback, thread_id,
-                 "Error while writing encoded data to " + output_file );
+            utils::Helper::log( callback, thread_id,
+                                "Error while writing encoded data to " + output_file );
 
             break;
         }
 
         fwrite( ( void* )mp3_buffer, sizeof( uint8_t ), encoded_size, output );
 
-        log( callback, thread_id, "Flushing LAME" );
+        utils::Helper::log( callback, thread_id, "Flushing LAME" );
 
         uint32_t flush = lame_encode_flush( g_lame_flags, mp3_buffer, buffer_size );
 
-        log( callback, thread_id, "Writing final encoded data" );
+        utils::Helper::log( callback, thread_id, "Writing final encoded data" );
 
         fwrite( ( void* )mp3_buffer, sizeof( uint8_t ), flush, output );
 
@@ -250,7 +209,7 @@ EncoderMP3::processing_files( void* arg )
 
         lame_close( g_lame_flags );
 
-        log( callback, thread_id, "Process done, output file: " + output_file );
+        utils::Helper::log( callback, thread_id, "Process done, output file: " + output_file );
     }
 
     pthread_exit( ( void* )error );
@@ -307,7 +266,7 @@ EncoderMP3::start_encoding( )
                              common::ErrorCode::ERROR_PTHREAD_JOIN );
     }
 
-#ifdef ENCODER_ENABLE_LOG
+#ifdef ENABLE_LOG
     std::ofstream ofs( ENCODER_LOG_FILE );
     if ( ofs.is_open( ) )
     {

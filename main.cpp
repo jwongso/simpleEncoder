@@ -16,6 +16,7 @@
 #include <thread>
 
 #include "core/EncoderMP3.h"
+#include "core/DecoderWAV.h"
 #include "utils/FileSystemHelper.h"
 
 // -------------------------------------------------------------------------------------------------
@@ -90,9 +91,9 @@ main(int argc, char *argv[])
         }
     }
 
-    core::EncoderMP3 encoder_mp3( common::AudioFormatType::WAV, core_number );
+    core::DecoderWAV decoder( common::AudioFormatType::MP3, core_number );
 
-    auto error = encoder_mp3.scan_input_directory( path );
+    auto error = decoder.scan_input_directory( path );
 
     if ( error != common::ErrorCode::ERROR_NONE )
     {
@@ -102,21 +103,47 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    const auto& wav_files = encoder_mp3.get_input_files( );
+    const auto& mp3_files = decoder.get_input_files( );
 
-    if ( !wav_files.empty( ) )
+    if ( !mp3_files.empty( ) )
     {
-        std::cout << "Found " << wav_files.size( ) <<
-                     " valid WAV files to be encoded using " <<
-                     encoder_mp3.get_encoder_version( ) << ":" << std::endl;
+        std::cout << "Found " << mp3_files.size( ) << " valid mp3 files:" << std::endl;
 
-        for ( const auto wav : wav_files )
+        for ( const auto mp3 : mp3_files )
         {
-            std::cout << wav << std::endl;
+            std::cout << mp3 << std::endl;
         }
 
-        error = encoder_mp3.start_encoding( );
+        //error = encoder_mp3.start_encoding( );
     }
+
+//    core::EncoderMP3 encoder_mp3( common::AudioFormatType::WAV, core_number );
+
+//    auto error = encoder_mp3.scan_input_directory( path );
+
+//    if ( error != common::ErrorCode::ERROR_NONE )
+//    {
+//        std::cerr << "Error while scanning the input directory: " <<
+//                     error_to_string( error ) << std::endl;
+
+//        return 0;
+//    }
+
+//    const auto& wav_files = encoder_mp3.get_input_files( );
+
+//    if ( !wav_files.empty( ) )
+//    {
+//        std::cout << "Found " << wav_files.size( ) <<
+//                     " valid WAV files to be encoded using " <<
+//                     encoder_mp3.get_encoder_version( ) << ":" << std::endl;
+
+//        for ( const auto wav : wav_files )
+//        {
+//            std::cout << wav << std::endl;
+//        }
+
+//        error = encoder_mp3.start_encoding( );
+//    }
 
     return 0;
 }

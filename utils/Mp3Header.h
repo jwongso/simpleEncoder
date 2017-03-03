@@ -13,7 +13,7 @@
 #define MP3_HEADER_H
 
 #include <stdint.h>
-#include <vector>
+#include <map>
 #include <string>
 
 namespace utils
@@ -21,18 +21,18 @@ namespace utils
 
 struct ID3Tag
 {
-    char id3[ 3 ];                          /// "ID3" id (3 bytes)
-    char version[ 2 ];                      /// Version major and revision (2 bytes)
-    bool flags[ 4 ];                        /// Flags (1 byte)
-    char offset;                            /// Offset (1 byte)
-    uint32_t extended_size;                 /// Extended header size
-    std::vector< std::string > frames[ 2 ]; /// Frames
+    char id3[ 3 ];                                  /// "ID3" id (3 bytes)
+    uint8_t version_major;                          /// Version major (1 byte)
+    uint8_t version_revision;                       /// Version revision (1 byte)
+    bool flags[ 4 ];                                /// Flags (1 byte)
+    uint32_t offset;                                /// Offset (1 byte)
+    uint32_t extended_size;                         /// Extended header size
+    std::map< std::string, std::string > frames;    /// Frames
 };
 
 struct Mp3Header
 {
-    char ff[ 1 ];                       /// "FF" (1 bytes)
-    float mpeg_version;                 /// mpeg version (1 bytes)
+    float mpeg_version;                 /// mpeg version (1 byte)
     uint32_t layer;                     /// Layer
     bool crc;                           /// CRC
     bool info[ 3 ];                     /// Info

@@ -42,6 +42,10 @@ public:
                              std::vector< ID3Tag >& id3tags,
                              uint32_t& last_pos );
 
+    static bool get_mp3header( const std::vector< uint8_t >& contents,
+                               const uint32_t offset,
+                               Mp3Header& header );
+
 private:
 
     const std::string& m_filename;

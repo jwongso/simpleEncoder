@@ -11,6 +11,7 @@
 
 #include "WaveFileWrapper.h"
 #include "FileSystemHelper.h"
+#include "Helper.h"
 
 #include <cstring>
 #include <fstream>
@@ -28,35 +29,6 @@ const char* DATA                = "data";
 const char* LIST                = "LIST";
 
 const uint16_t MIN_HEADER_SIZE  = 44;
-
-// -------------------------------------------------------------------------------------------------
-
-template< class T >
-void
-read_as_chars( const std::vector< T >& input, uint32_t pos, uint32_t length, char* target )
-{
-    if ( sizeof( target ) / sizeof( char ) < length )
-    {
-        return;
-    }
-
-    std::copy( input.begin( ) + pos, input.begin( ) + ( pos + length ), target );
-}
-
-uint32_t
-read_as_uint32( const std::vector< uint8_t >& input, uint32_t pos )
-{
-    return ( input[ pos ] |
-           ( input[ pos + 1 ] << 8 ) |
-           ( input[ pos + 2 ] << 16 ) |
-           ( input[ pos + 3 ] << 24 ) );
-}
-
-uint16_t
-read_as_uint16( const std::vector< uint8_t >& input, uint32_t pos )
-{
-    return ( input[ pos ] << 0 ) | ( input[ pos + 1 ] << 8 );
-}
 
 }
 
@@ -135,7 +107,7 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
     }
 
     uint32_t pos = 0;
-    read_as_chars( contents, pos, 4, header.riff );
+    Helper::read_as_chars( contents, pos, 4, header.riff );
 
     if ( strncmp( header.riff, RIFF, strlen( RIFF ) ) != 0 )
     {
@@ -143,9 +115,9 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
     }
 
     pos += sizeof( header.riff ); // 4
-    header.file_length = read_as_uint32( contents, pos );
+    header.file_length = Helper::read_as_uint32_little( contents, pos );
     pos += sizeof( uint32_t ); // 4
-    read_as_chars( contents, 8, 4, header.wave );
+    Helper::read_as_chars( contents, 8, 4, header.wave );
 
     if ( strncmp( header.wave, WAVE, strlen( WAVE ) ) != 0 )
     {
@@ -159,7 +131,7 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
 
     while ( !found_fmt && pos + 4 < contents.size( ) )
     {
-        read_as_chars( contents, pos, 4, header.fmt );
+        Helper::read_as_chars( contents, pos, 4, header.fmt );
         pos += 4;
 
         if ( strncmp( header.fmt, FMT, strlen( FMT ) ) != 0 )
@@ -169,26 +141,26 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
 
         found_fmt = true;
 
-        header.chunk_size = read_as_uint32( contents, pos );
+        header.chunk_size = Helper::read_as_uint32_little( contents, pos );
         pos += sizeof( uint32_t ); // 4
         pos_data = pos + header.chunk_size;
 
-        header.format = read_as_uint16( contents, pos );
+        header.format = Helper::read_as_uint16( contents, pos );
         pos += sizeof( uint16_t ); // 2
 
-        header.channels = read_as_uint16( contents, pos );
+        header.channels = Helper::read_as_uint16( contents, pos );
         pos += sizeof( uint16_t ); // 2
 
-        header.sampes_per_sec = read_as_uint32( contents, pos );
+        header.sampes_per_sec = Helper::read_as_uint32_little( contents, pos );
         pos += sizeof( uint32_t ); // 4
 
-        header.bytes_per_sec = read_as_uint32( contents, pos );
+        header.bytes_per_sec = Helper::read_as_uint32_little( contents, pos );
         pos += sizeof( uint32_t ); // 4
 
-        header.block_align = read_as_uint16( contents, pos );
+        header.block_align = Helper::read_as_uint16( contents, pos );
         pos += sizeof( uint16_t ); // 2
 
-        header.bits_per_sample = read_as_uint16( contents, pos );
+        header.bits_per_sample = Helper::read_as_uint16( contents, pos );
         pos += sizeof( uint16_t ); // 2
 
         break;
@@ -203,12 +175,12 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
 
     while ( !found_data && pos + 4 < contents.size( ) )
     {
-        read_as_chars( contents, pos, 4, header.data );
+        Helper::read_as_chars( contents, pos, 4, header.data );
         pos += 4;
 
         if ( strncmp( header.data, LIST, strlen( LIST ) ) == 0 )
         {
-            uint32_t info_size = read_as_uint32( contents, pos );
+            uint32_t info_size = Helper::read_as_uint32_little( contents, pos );
             pos += info_size;
 
             continue;
@@ -218,7 +190,7 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
         {
             found_data = true;
 
-            header.data_size = read_as_uint32( contents, pos );
+            header.data_size = Helper::read_as_uint32_little( contents, pos );
             pos += sizeof( uint32_t );
 
             break;
