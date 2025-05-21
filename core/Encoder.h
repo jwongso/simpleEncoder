@@ -15,8 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "common/AudioFormatType.h"
-#include "common/ErrorCodes.h"
+#include "common/Common.h"
 
 namespace core
 {

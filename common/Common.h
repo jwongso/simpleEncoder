@@ -38,8 +38,8 @@ namespace common
 {
 
 /**
-    * Different audio format type for input and output
-    */
+* Different audio format type for input and output
+*/
 enum class AudioFormatType
 {
     UNKNOWN = 0,
@@ -51,6 +51,7 @@ enum class AudioFormatType
     ACC,
     VORBIS,
     WMA,
+    OPUS,  // Added OPUS format
     // Lossless compressed
     FLAC,
     ALAC
@@ -72,6 +73,7 @@ enum ErrorCode
     ERROR_PTHREAD_CREATE,
     ERROR_PTHREAD_JOIN,
     ERROR_LAME,
+    ERROR_OPUS,  // Added OPUS error code
     ERROR_BUSY,
     ERROR_IO
 };

@@ -27,7 +27,7 @@ struct WaveHeader
     uint32_t chunk_size;                /// should be 16 or 18
     uint16_t format;                    /// 0x01 for PCM - other modes unsupported
     uint16_t channels;                  /// number of channels (1 mono, 2 stereo)
-    uint32_t sampes_rate;               /// e.g. 44100
+    uint32_t sample_rate;               /// e.g. 44100
     uint32_t bytes_per_sec;             /// e.g. 4*44100
     uint16_t block_align;               /// bytes per sample (all channels, e.g. 4)
     uint16_t bits_per_sample;           /// bits per sample and channel, e.g. 16

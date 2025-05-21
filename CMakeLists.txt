@@ -10,10 +10,23 @@ option(BUILD_TESTS_APP "Build tests (gtest)" off)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_path (MP3LAME_INCLUDE_DIR lame/lame.h)
-
+# Find MP3LAME library
+find_path(MP3LAME_INCLUDE_DIR lame/lame.h)
 find_library(LAME_LIB
     NAMES mp3lame
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+
+# Find Opus library
+find_path(OPUS_INCLUDE_DIR opus/opus.h)
+find_library(OPUS_LIB
+    NAMES opus
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+
+find_path(OPUSENC_INCLUDE_DIR opus/opusenc.h)
+find_library(OPUSENC_LIB
+    NAMES opusenc
     PATHS ${CMAKE_LIBRARY_PATH}
 )
 
@@ -24,6 +37,7 @@ set(CORE_SRC
     core/DecoderWAV.cpp
     core/Encoder.cpp
     core/EncoderMP3.cpp
+    core/EncoderOpus.cpp  # Added EncoderOpus.cpp
 )
 
 set(UTILS_SRC
@@ -54,10 +68,15 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE ${LAME_LIB}
+    PRIVATE ${OPUS_LIB}
+    PRIVATE ${OPUSENC_LIB}
     PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
 target_include_directories(${PROJECT_NAME}
     SYSTEM PUBLIC ${MP3LAME_INCLUDE_DIR}
+    SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}
+    SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}/opus
+    SYSTEM PUBLIC ${OPUSENC_INCLUDE_DIR}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
