@@ -289,6 +289,8 @@ common::ErrorCode
 EncoderMP3::cancel_encoding( )
 {
     m_cancelled = true;
+
+    return common::ErrorCode::ERROR_CANCELLED;
 }
 
 // -------------------------------------------------------------------------------------------------

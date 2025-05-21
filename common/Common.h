@@ -38,6 +38,25 @@ namespace common
 {
 
 /**
+    * Different audio format type for input and output
+    */
+enum class AudioFormatType
+{
+    UNKNOWN = 0,
+    // Uncompressed
+    WAV,
+    AIFF,
+    // Lossy compressed
+    MP3,
+    ACC,
+    VORBIS,
+    WMA,
+    // Lossless compressed
+    FLAC,
+    ALAC
+};
+
+/**
  * Error codes that can be returned by encoder components.
  */
 enum ErrorCode

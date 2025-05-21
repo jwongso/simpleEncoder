@@ -184,6 +184,7 @@ common::ErrorCode
 DecoderWAV::cancel_decoding( )
 {
     m_cancelled = true;
+    return common::ErrorCode::ERROR_CANCELLED;
 }
 
 // -------------------------------------------------------------------------------------------------
