@@ -151,7 +151,7 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
         header.channels = Helper::read_as_uint16( contents, pos );
         pos += sizeof( uint16_t ); // 2
 
-        header.sampes_per_sec = Helper::read_as_uint32_little( contents, pos );
+        header.sampes_rate = Helper::read_as_uint32_little( contents, pos );
         pos += sizeof( uint32_t ); // 4
 
         header.bytes_per_sec = Helper::read_as_uint32_little( contents, pos );
