@@ -23,17 +23,6 @@ do \
     } \
 } while (0)
 
-#define RETURN_IF_ERROR( func ) \
-do \
-{ \
-    int ret = ( func ); \
-    if ( ret != 0 ) \
-    { \
-        fprintf(stderr, "Error: %s returned %d at %s:%d", #func, ret, __FILE__, __LINE__ ); \
-        return ret; \
-    } \
-} while (0)
-
 namespace common
 {
 
@@ -51,7 +40,7 @@ enum class AudioFormatType
     ACC,
     VORBIS,
     WMA,
-    OPUS,  // Added OPUS format
+    OPUS,
     // Lossless compressed
     FLAC,
     ALAC
@@ -73,7 +62,8 @@ enum ErrorCode
     ERROR_PTHREAD_CREATE,
     ERROR_PTHREAD_JOIN,
     ERROR_LAME,
-    ERROR_OPUS,  // Added OPUS error code
+    ERROR_OPUS,
+    ERROR_FLAC,
     ERROR_BUSY,
     ERROR_IO
 };
