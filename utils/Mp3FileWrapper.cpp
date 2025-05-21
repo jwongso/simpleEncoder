@@ -352,6 +352,8 @@ Mp3FileWrapper::get_mp3header( const std::vector< uint8_t >& contents,
     header.emphasis = header.emphasis >> 6;
 
     get_sampling_rate( contents[ pos + 2 ], header ); // 2
+
+    return true;
 }
 
 // -------------------------------------------------------------------------------------------------
