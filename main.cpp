@@ -90,9 +90,9 @@ main(int argc, char *argv[])
         }
     }
 
-   core::EncoderFLAC encoder_mp3( common::AudioFormatType::OPUS, core_number );
+   core::EncoderFLAC encoder( common::AudioFormatType::FLAC, core_number );
 
-   auto error = encoder_mp3.scan_input_directory( path );
+   auto error = encoder.scan_input_directory( path );
 
    if ( error != common::ErrorCode::ERROR_NONE )
    {
@@ -102,20 +102,20 @@ main(int argc, char *argv[])
        return 0;
    }
 
-   const auto& wav_files = encoder_mp3.get_input_files( );
+   const auto& wav_files = encoder.get_input_files( );
 
    if ( !wav_files.empty( ) )
    {
        std::cout << "Found " << wav_files.size( ) <<
                     " valid WAV files to be encoded using " <<
-                    encoder_mp3.get_encoder_version( ) << ":" << std::endl;
+                    encoder.get_encoder_version( ) << ":" << std::endl;
 
        for ( const auto wav : wav_files )
        {
            std::cout << wav << std::endl;
        }
 
-       error = encoder_mp3.start_encoding( );
+       error = encoder.start_encoding( );
    }
 
     return 0;
