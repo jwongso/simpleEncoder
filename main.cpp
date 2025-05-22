@@ -15,7 +15,7 @@
 #include <cstring>
 #include <thread>
 
-#include "core/EncoderOpus.h"
+#include "core/EncoderFLAC.h"
 #include "utils/FileSystemHelper.h"
 
 // -------------------------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
         }
     }
 
-   core::EncoderOpus encoder_mp3( common::AudioFormatType::OPUS, core_number );
+   core::EncoderFLAC encoder_mp3( common::AudioFormatType::OPUS, core_number );
 
    auto error = encoder_mp3.scan_input_directory( path );
 

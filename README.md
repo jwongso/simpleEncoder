@@ -1,14 +1,19 @@
 # simpleEncoder
-Very simple wave encoder
+Very simple wave to mp3 (and other formats) encoder
 
+## Dependencies
+- cmake
+- g++ (C++14 and newer)
+- thread
+- libmp3lame or lame mpr library
+
+## Build
+- `mkdir buiild && cd build`
+- `cmake -DCMAKE_BUILD_TYPE=Debug ../` or `cmake -DCMAKE_BUILD_TYPE=Release ../` for release build
+- `make -j8`
+
+## Usage
 Input: folder contains .wav/.wave files
-
-Output: all encoded files within the input folders with different encoding format/extension.
-
-Encoder:
-
-1) mp3: using LAME 3.99.5 (static) library. Visit www.mp3dev.org for help or info.
-
-2) coming soon
-
-Should/will run on Linux, MacOS and QNX
+Output: all encoded files within the input folders with different encoding format/extension e.g., .mp3
+- `cd build`
+- `./simpleEncoder ../test_data`
