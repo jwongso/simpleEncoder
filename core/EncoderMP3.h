@@ -28,7 +28,9 @@ namespace core
 class EncoderMP3 : public Encoder
 {
 public:
-    EncoderMP3(common::AudioFormatType input_type, uint16_t thread_number, bool verbose);
+    EncoderMP3(common::AudioFormatType input_type,
+               uint16_t thread_number = 1,
+               bool verbose = false);
     virtual ~EncoderMP3();
 
     const std::string& get_encoder_version() const;

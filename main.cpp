@@ -87,15 +87,16 @@ main(int argc, char *argv[])
         return app.exit(e);
     }
 
+    utils::FileSystemHelper fs;
     // Validate input directory
     std::string canonical_input_path;
-    if (!utils::FileSystemHelper::canonical_path(input_dir, canonical_input_path)) {
+    if (!fs.canonical_path(input_dir, canonical_input_path)) {
         std::cerr << "The given input directory: " << input_dir << " is not valid!" << std::endl;
         return 1;
     }
 
     // Create output directory if it doesn't exist
-    if (!utils::FileSystemHelper::ensure_directory_exists(output_dir)) {
+    if (!fs.ensure_directory_exists(output_dir)) {
         std::cerr << "Failed to create output directory: " << output_dir << std::endl;
         return 1;
     }

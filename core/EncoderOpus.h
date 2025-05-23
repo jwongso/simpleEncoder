@@ -24,7 +24,9 @@ namespace core
 class EncoderOpus : public Encoder
 {
 public:
-    EncoderOpus( common::AudioFormatType input_type, uint16_t thread_number, bool verbose );
+    EncoderOpus( common::AudioFormatType input_type,
+                 uint16_t thread_number = 1,
+                 bool verbose = false);
     virtual ~EncoderOpus( );
 
     const std::string& get_encoder_version( ) const;

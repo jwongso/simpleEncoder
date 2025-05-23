@@ -188,9 +188,10 @@ Mp3FileWrapper::validate( const std::string& filename,
                           std::vector< ID3Tag >& id3tags,
                           Mp3Header& header )
 {
+    utils::FileSystemHelper fs;
     std::vector< uint8_t > contents;
 
-    if ( !FileSystemHelper::read_binary_file( filename, contents ) )
+    if ( !fs.read_binary_file( filename, contents ) )
     {
         return false;
     }

@@ -96,7 +96,9 @@ WaveFileWrapper::validate( const std::string& filename, WaveHeader& header )
 {
     std::vector< uint8_t > contents;
 
-    if ( !FileSystemHelper::read_binary_file( filename, contents ) )
+    utils::FileSystemHelper fs;
+
+    if ( !fs.read_binary_file( filename, contents ) )
     {
         return false;
     }

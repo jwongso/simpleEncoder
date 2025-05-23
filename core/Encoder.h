@@ -37,14 +37,15 @@ public:
 
     common::ErrorCode scan_input_directory(const std::string& dir)
     {
-        if ( !utils::FileSystemHelper::directory_exists( dir ) )
+        utils::FileSystemHelper fs;
+        if ( !fs.directory_exists( dir ) )
         {
             return common::ErrorCode::ERROR_NOT_FOUND;
         }
 
         std::vector< std::string > files;
 
-        if ( !utils::FileSystemHelper::get_file_paths( dir, files ) )
+        if ( !fs.get_file_paths( dir, files ) )
         {
             return common::ErrorCode::ERROR_NOT_FOUND;
         }

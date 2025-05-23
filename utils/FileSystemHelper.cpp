@@ -25,35 +25,9 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#ifdef _MSC_VER
-
-#include <windows.h>
-#include <stdio.h>
-#include <direct.h>
-#include <codecvt>
-#include <Strsafe.h>
-#include <errno.h>
-#include <io.h>
-#include <stdlib.h>
-#include <string.h>
-
-// For Windows there is no equivalent for lstat.
-#define stat _stat
-#define lstat _stat
-
-// Convenience macros for stat mode not present in Windows.
-#define S_ISDIR( mode ) ( ( mode & S_IFMT ) == S_IFDIR )
-#define S_ISCHR( mode ) ( ( mode & S_IFMT ) == S_IFCHR )
-#define S_ISFIFO( mode ) ( ( mode & S_IFMT ) == S_IFFIFO )
-#define S_ISREG( mode ) ( ( mode & S_IFMT ) == S_IFREG )
-
-#else  // _MSC_VER
-
 #include <dirent.h>
 #include <libgen.h>
 #include <unistd.h>
-
-#endif  // _MSC_VER
 
 namespace utils
 {
@@ -63,107 +37,8 @@ namespace
 
 #define UNUSED( var ) do { ( void )( var ); } while ( 0 )
 
-#if defined( _MSC_VER )
-
-// Directory separator.
-static const char separator = '\\';
-
-struct dirent
-{
-    char* d_name;
-};
-
-struct DIR
-{
-    intptr_t handle;
-    struct _finddata_t info;
-    dirent result;
-    char* name;
-};
-
-DIR*
-opendir( const char* name )
-{
-    // Check for valid directory path.
-    if ( ( name == nullptr ) || ( name[ 0 ] == 0 ) )
-    {
-        errno = EINVAL;
-        return nullptr;
-    }
-
-    // Determine the trailing search pattern string.
-    std::size_t base_len = strlen( name );
-    const char* pat = ( strchr( "/\\", name[ base_len - 1 ] ) ) ? "*" : "\\*";
-    std::size_t size = base_len + strlen( pat ) + 1;
-
-    // Allocate the DIR struct along with its name.
-    DIR* dir = static_cast< DIR* >( malloc( sizeof *dir ) );
-    if ( !dir || ( ( dir->name = static_cast< char* >( malloc( size ) ) ) == nullptr ) )
-    {
-        free( dir );
-        errno = ENOMEM;
-        return nullptr;
-    }
-
-    // Set up the directory traversal information.
-    strcat( strcpy( dir->name, name ), pat );
-    dir->result.d_name = nullptr;
-    if ( ( dir->handle = _findfirst( dir->name, &dir->info ) ) == -1 )
-    {
-        free( dir->name );
-        free( dir );
-        dir = nullptr;
-    }
-
-    return dir;
-}
-
-int
-closedir( DIR* dir )
-{
-    if ( dir == nullptr )
-    {
-        errno = EBADF;
-        return -1;
-    }
-
-    int result = _findclose( dir->handle );
-    if ( result < 0 )
-    {
-        errno = EBADF;
-    }
-
-    free( dir->name );
-    free( dir );
-
-    return result;
-}
-
-struct dirent*
-readdir( DIR* dir )
-{
-    if ( ( dir == nullptr ) || ( dir->handle == -1 ) )
-    {
-        errno = EBADF;
-        return nullptr;
-    }
-
-    struct dirent* result = nullptr;
-    if ( ( dir->result.d_name == nullptr ) || ( _findnext( dir->handle, &dir->info ) != -1 ) )
-    {
-        result = &dir->result;
-        result->d_name = dir->info.name;
-    }
-
-    return result;
-}
-
-#else
-
 // Directory separator.
 static const char separator = '/';
-
-#endif
 
 template < class Fun >
 std::tuple< bool, bool >
@@ -230,21 +105,6 @@ bool
 FileSystemHelper::canonical_path( const std::string& in, std::string& out )
 {
     const char* cstr_in = in.c_str( );
-
-#if defined( _MSC_VER )
-    char cstr_out[ MAX_PATH ];
-
-    DWORD rv = GetFullPathNameA( cstr_in, MAX_PATH, cstr_out, nullptr );
-
-    if ( rv == 0 )
-    {
-        out.assign( in );
-
-        return false;
-    }
-
-    out.assign( cstr_out );
-#else
     char cstr_out[ PATH_MAX ];
     char* out_ptr;
 
@@ -258,7 +118,6 @@ FileSystemHelper::canonical_path( const std::string& in, std::string& out )
     }
 
     out.assign( out_ptr );
-#endif
 
     return true;
 }
@@ -305,17 +164,6 @@ FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< u
 
     FILE* fp;
 
-#ifdef _MSC_VER
-
-    errno_t err = fopen_s( &fp, file_path.c_str( ), "rb" );
-
-    if ( err != 0 )
-    {
-        return false;
-    }
-
-#else
-
     fp = ::fopen( file_path.c_str( ), "rb" );
 
     if ( !fp )
@@ -323,14 +171,12 @@ FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< u
         return false;
     }
 
-#endif  // _MSC_VER
-
     ::fseek( fp, 0, SEEK_END );
     const auto file_size = ::ftell( fp );
     ::fseek( fp, 0, SEEK_SET );
 
     contents.clear( );
-    contents.resize( file_size );
+    contents.resize(file_size / sizeof(uint8_t));
 
     size_t readItems = ::fread( &contents[ 0 ], file_size, 1, fp );
     ::fclose( fp );
@@ -350,17 +196,6 @@ FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< i
 
     FILE* fp;
 
-#ifdef _MSC_VER
-
-    errno_t err = fopen_s( &fp, file_path.c_str( ), "rb" );
-
-    if ( err != 0 )
-    {
-        return false;
-    }
-
-#else
-
     fp = ::fopen( file_path.c_str( ), "rb" );
 
     if ( !fp )
@@ -368,14 +203,12 @@ FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< i
         return false;
     }
 
-#endif  // _MSC_VER
-
     ::fseek( fp, 0, SEEK_END );
     const auto file_size = ::ftell( fp );
     ::fseek( fp, 0, SEEK_SET );
 
     contents.clear( );
-    contents.resize( file_size );
+    contents.resize(file_size / sizeof(int16_t));
 
     size_t readItems = ::fread( ( char* )&contents[ 0 ], file_size, 1, fp );
     ::fclose( fp );

@@ -12,6 +12,7 @@
 #ifndef FILE_SYSTEM_HELPER_H
 #define FILE_SYSTEM_HELPER_H
 
+#include "IFileSystemHelper.h"
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -19,30 +20,30 @@
 namespace utils
 {
 
-class FileSystemHelper
+class FileSystemHelper : public IFileSystemHelper
 {
 public:
-
     /// Canonicalize a path from in with out as result.
-    static bool canonical_path( const std::string& in, std::string& out );
+    bool canonical_path(const std::string& in, std::string& out) override;
 
     /// Gets a value indicating whether the given file path exists.
-    static bool file_exists( const std::string& file_path );
+    bool file_exists(const std::string& file_path) override;
 
     /// Gets a value indicating whether the given directory exists.
-    static bool directory_exists( const std::string& directory_path );
+    bool directory_exists(const std::string& directory_path) override;
 
     /// Reads the contents of the given binary file into contents.
-    static bool read_binary_file( const std::string& file_path, std::vector< uint8_t >& contents );
+    bool read_binary_file(const std::string& file_path, std::vector<uint8_t>& contents) override;
 
     /// Reads the contents of the given binary file into contents.
-    static bool read_binary_file( const std::string& file_path, std::vector< int16_t >& contents );
+    bool read_binary_file(const std::string& file_path, std::vector<int16_t>& contents) override;
 
     /// Retrieves file paths in the given directory recursively
-    static bool get_file_paths( const std::string& directory_path,
-                                std::vector< std::string >& file_paths );
+    bool get_file_paths(const std::string& directory_path,
+                        std::vector<std::string>& file_paths) override;
 
-    static bool ensure_directory_exists(const std::string& dir);
+    /// Ensures a directory exists, creating it if necessary
+    bool ensure_directory_exists(const std::string& dir) override;
 };
 
 }  // utils

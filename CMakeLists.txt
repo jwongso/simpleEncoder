@@ -5,7 +5,7 @@ find_package(Threads REQUIRED)
 
 option(CMAKE_CXX_NO_RTTI "Disable C++ RTTI" off)
 option(ENABLE_FILE_LOG "Enable file log" on)
-option(BUILD_TESTS_APP "Build tests (gtest)" off)
+option(BUILD_TESTS "Build tests (gtest)" on)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -59,10 +59,6 @@ set(SOURCE
     main.cpp
 )
 
-if(BUILD_TESTS_APP)
-    message(STATUS "-- Tests are not yet implemented! --")
-endif()
-
 include_directories(${LAME_BIN}/include)
 
 add_executable(${PROJECT_NAME} ${CORE_SRC} ${UTILS_SRC} ${SOURCE})
@@ -91,3 +87,38 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Testing setup
+if(BUILD_TESTS)
+    # Enable testing
+    enable_testing()
+
+    # Find GTest package
+    find_package(GTest REQUIRED)
+
+    # Create a list of test files
+    set(TEST_SRC
+        tests/FileSystemHelperTest.cpp
+    )
+
+    # Create test executable
+    add_executable(fileSystemHelper_utest ${TEST_SRC} ${UTILS_SRC})
+
+    # Link against GTest and other required libraries
+    target_link_libraries(fileSystemHelper_utest
+        PRIVATE GTest::GTest
+        PRIVATE GTest::Main
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    # Include directories
+    target_include_directories(fileSystemHelper_utest
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${GTEST_INCLUDE_DIRS}
+    )
+
+    # Add tests to CTest
+    add_test(NAME UnitTests COMMAND fileSystemHelper_utest)
+
+    message(STATUS "Tests are enabled and will be built")
+endif()
