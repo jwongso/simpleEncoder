@@ -41,6 +41,8 @@ public:
     /// Retrieves file paths in the given directory recursively
     static bool get_file_paths( const std::string& directory_path,
                                 std::vector< std::string >& file_paths );
+
+    static bool ensure_directory_exists(const std::string& dir);
 };
 
 }  // utils

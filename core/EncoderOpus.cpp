@@ -62,11 +62,13 @@ void resampleTo48kHz(const int16_t* input, int input_samples, int input_rate, in
 
 // -------------------------------------------------------------------------------------------------
 
-EncoderOpus::EncoderOpus(common::AudioFormatType input_type, uint16_t thread_number)
-: Encoder(input_type, common::AudioFormatType::OPUS)
-, m_encoder_version(OPUS + get_opus_version())
-, m_thread_number(thread_number)
-, m_cancelled(false)
+EncoderOpus::EncoderOpus(common::AudioFormatType input_type, uint16_t thread_number, bool verbose)
+: Encoder(input_type,
+          common::AudioFormatType::OPUS,
+          OPUS + get_opus_version(),
+          thread_number,
+          false,
+          verbose)
 {
 }
 
@@ -100,6 +102,8 @@ EncoderOpus::processing_files(void* arg)
     auto* thread_arg = static_cast<EncoderThreadArg*>(arg);
     const uint32_t thread_id = thread_arg->thread_id;
     const auto& callback = thread_arg->callback;
+    const bool verbose = thread_arg->verbose;
+    const std::string& output_dir = thread_arg->output_directory;
 
     while (true)
     {
@@ -134,13 +138,25 @@ EncoderOpus::processing_files(void* arg)
 
         utils::Helper::log(callback, thread_id, "Processing " + input_file);
 
-        std::string output_file = utils::Helper::generate_output_file(input_file, OUTPUT_EXT);
+        // Generate output file with output directory
+        size_t last_slash = input_file.find_last_of("/\\");
+        std::string filename = (last_slash == std::string::npos)
+                            ? input_file
+                            : input_file.substr(last_slash + 1);
+
+        // Use it for output path:
+        std::string output_file = thread_arg->output_directory + "/" +
+                                utils::Helper::generate_output_file(filename, OUTPUT_EXT);
+
         utils::WaveHeader header;
         utils::WaveFileWrapper wave(input_file);
 
         if (!wave.is_valid())
         {
-            fprintf(stderr, "Invalid wave file: %s\n", input_file.c_str());
+            if (verbose)
+            {
+                fprintf(stderr, "Invalid wave file: %s\n", input_file.c_str());
+            }
             utils::Helper::log(callback, thread_id, "Invalid wave file: " + input_file);
             continue;
         }
@@ -150,7 +166,10 @@ EncoderOpus::processing_files(void* arg)
 
         if (!wave.get_wave_data(header, left, right))
         {
-            fprintf(stderr, "Error reading PCM data from %s\n", input_file.c_str());
+            if (verbose)
+            {
+                fprintf(stderr, "Error reading PCM data from %s\n", input_file.c_str());
+            }
             utils::Helper::log(callback, thread_id, "Error reading PCM data");
             delete[] left;
             delete[] right;
@@ -184,8 +203,11 @@ EncoderOpus::processing_files(void* arg)
             OggOpusComments* comments = ope_comments_create();
             ope_comments_add(comments, "ENCODER", "MyAudioEncoder");
 
-            fprintf(stderr, "Creating encoder with: output=%s, rate=%d, channels=%d\n",
+            if (verbose)
+            {
+                fprintf(stderr, "Creating encoder with: output=%s, rate=%d, channels=%d\n",
                     output_file.c_str(), 48000, header.channels);
+            }
 
             int opus_err;
             OggOpusEnc* enc = ope_encoder_create_file(
@@ -199,7 +221,10 @@ EncoderOpus::processing_files(void* arg)
 
             if (!enc)
             {
-                fprintf(stderr, "Error creating encoder: %s\n", ope_strerror(opus_err));
+                if (verbose)
+                {
+                    fprintf(stderr, "Error creating encoder: %s\n", ope_strerror(opus_err));
+                }
                 utils::Helper::log(callback, thread_id, "Failed to create encoder");
                 ope_comments_destroy(comments);
                 throw std::runtime_error("Encoder creation failed");
@@ -227,7 +252,10 @@ EncoderOpus::processing_files(void* arg)
         }
         catch (const std::exception& e)
         {
-            fprintf(stderr, "Exception: %s\n", e.what());
+            if (verbose)
+            {
+                fprintf(stderr, "Exception: %s\n", e.what());
+            }
         }
 
         delete[] left;
@@ -265,6 +293,8 @@ EncoderOpus::start_encoding()
         thread_arg.thread_id = (i + 1);
         thread_arg.input_files = &m_to_be_encoded_files;
         thread_arg.cancelled = &m_cancelled;
+        thread_arg.verbose = m_verbose;
+        thread_arg.output_directory = m_output_directory;
 
         auto callback = [this](const std::string& key, const std::string& value)
         {
@@ -288,7 +318,7 @@ EncoderOpus::start_encoding()
                             common::ErrorCode::ERROR_PTHREAD_JOIN);
     }
 
-    #ifdef ENABLE_LOG
+#ifdef ENABLE_LOG
     std::ofstream ofs(ENCODER_LOG_FILE);
     if (ofs.is_open())
     {
@@ -298,7 +328,7 @@ EncoderOpus::start_encoding()
         }
     }
     ofs.close();
-    #endif
+#endif
 
     m_cancelled = false;
 
@@ -325,7 +355,10 @@ EncoderOpus::on_encoding_status(const std::string& key, const std::string& value
     std::string log = key + " " + value;
     m_status.emplace_back(log);
 
-    std::cout << log << std::endl;
+    if (m_verbose)
+    {
+        std::cout << log << std::endl;
+    }
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -19,6 +19,7 @@
 #include <iterator>
 #include <sstream>
 #include <tuple>
+#include <filesystem>
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -403,6 +404,30 @@ FileSystemHelper::get_file_paths( const std::string& directory_path,
                              } );
 
     return status;
+}
+
+// -------------------------------------------------------------------------------------------------
+
+bool
+FileSystemHelper::ensure_directory_exists( const std::string& dir )
+{
+    namespace fs = std::filesystem;
+
+    try {
+        fs::path path(dir);
+
+        // If the directory already exists, return true
+        if (fs::exists(path)) {
+            return fs::is_directory(path);
+        }
+
+        // Try to create the directory (and any necessary parent dirs)
+        return fs::create_directories(path);
+    } catch (const fs::filesystem_error& e) {
+        // Optionally log the error
+        // std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 // -------------------------------------------------------------------------------------------------

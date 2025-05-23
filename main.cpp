@@ -9,21 +9,23 @@
 //
 // -------------------------------------------------------------------------------------------------
 
-
 #include <iostream>
 #include <map>
 #include <cstring>
 #include <thread>
+#include <memory>
 
-#include "core/EncoderFLAC.h"
+#include <CLI.hpp>
+#include "core/EncoderFactory.h"
 #include "utils/FileSystemHelper.h"
+#include "utils/Helper.h"
 
 // -------------------------------------------------------------------------------------------------
 
 const char*
-error_to_string( common::ErrorCode error )
+error_to_string(common::ErrorCode error)
 {
-    static const std::map< common::ErrorCode, const char* > s_error_strings =
+    static const std::map<common::ErrorCode, const char*> s_error_strings =
     {
         { common::ErrorCode::ERROR_NONE, "Error none" },
         { common::ErrorCode::ERROR_NOT_FOUND, "Not found" },
@@ -33,9 +35,9 @@ error_to_string( common::ErrorCode error )
         { common::ErrorCode::ERROR_BUSY, "pthread error" }
     };
 
-    auto found = s_error_strings.find( error );
+    auto found = s_error_strings.find(error);
 
-    if ( found == s_error_strings.end( ) )
+    if (found == s_error_strings.end())
     {
         return "Unknown error";
     }
@@ -48,76 +50,105 @@ error_to_string( common::ErrorCode error )
 int
 main(int argc, char *argv[])
 {
-    if ( argc < 2 )
-    {
-        std::cerr << "Please provide a valid path to directory of .WAV file(s)" << std::endl;
-        std::cerr << "Usage: " << argv[ 0 ] << " <PATH DIRECTORY> [-jN]" << std::endl;
+    CLI::App app{"Audio Encoder - Convert WAV files to various formats"};
 
+    // Required parameters
+    std::string input_dir;
+    app.add_option("-i,--input", input_dir, "Input directory containing WAV files")
+        ->required()
+        ->check(CLI::ExistingDirectory);
+
+    std::string output_dir;
+    app.add_option("-o,--output", output_dir, "Output directory for encoded files")
+        ->required();
+
+    // Optional parameters
+    std::string format = "flac";
+    auto supported_formats = core::EncoderFactory::get_supported_formats();
+    app.add_option("-f,--format", format, "Output format")
+        ->check(CLI::IsMember(supported_formats))
+        ->default_str("flac");
+
+    uint16_t threads = 1;
+    uint16_t max_threads = std::thread::hardware_concurrency();
+    app.add_option("-j,--threads", threads, "Number of encoding threads")
+        ->default_val(max_threads > 2 ? max_threads / 2 : 1)
+        ->check(CLI::Range(1, static_cast<int>(max_threads)));
+
+    // Todo: Enable fprintf, std::cout in all derived encoder classes.
+    bool verbose = false;
+    app.add_flag("-v,--verbose", verbose, "Enable verbose output")
+        ->default_val(false);
+
+    // Parse command line arguments
+    try {
+        app.parse(argc, argv);
+    } catch (const CLI::ParseError &e) {
+        return app.exit(e);
+    }
+
+    // Validate input directory
+    std::string canonical_input_path;
+    if (!utils::FileSystemHelper::canonical_path(input_dir, canonical_input_path)) {
+        std::cerr << "The given input directory: " << input_dir << " is not valid!" << std::endl;
+        return 1;
+    }
+
+    // Create output directory if it doesn't exist
+    if (!utils::FileSystemHelper::ensure_directory_exists(output_dir)) {
+        std::cerr << "Failed to create output directory: " << output_dir << std::endl;
+        return 1;
+    }
+
+    // Create encoder based on format
+    common::AudioFormatType output_format = core::EncoderFactory::string_to_format_type(format);
+    auto encoder = core::EncoderFactory::create_encoder(output_format, common::AudioFormatType::WAV, threads, verbose);
+
+    if (!encoder) {
+        std::cerr << "Failed to create encoder for format: " << format << std::endl;
+        return 1;
+    }
+
+    // Set encoder options
+    encoder->set_output_directory(output_dir);
+
+    // Scan input directory
+    auto error = encoder->scan_input_directory(canonical_input_path);
+    if (error != common::ErrorCode::ERROR_NONE) {
+        std::cerr << "Error while scanning the input directory: " <<
+                    error_to_string(error) << std::endl;
+        return 1;
+    }
+
+    const auto& wav_files = encoder->get_input_files();
+    if (wav_files.empty()) {
+        std::cerr << "No valid WAV files found in the input directory." << std::endl;
         return 0;
     }
 
-    const std::string& folder = argv[ 1 ];
-    std::string path;
-    if ( !utils::FileSystemHelper::canonical_path( folder, path ) )
-    {
-        std::cerr << "The given directory: " << folder << " is not valid!" << std::endl;
+    // Display information
+    std::cout << "Found " << wav_files.size() <<
+                " valid WAV files to be encoded using " <<
+                encoder->get_encoder_version() << ":" << std::endl;
 
-        return 0;
-    }
-
-    uint16_t core_number = 1;
-    uint16_t initial_core_numbers = std::thread::hardware_concurrency( );
-
-    if ( initial_core_numbers > 2 )
-    {
-        core_number = initial_core_numbers / 2;
-    }
-
-    if ( argc > 2 )
-    {
-        if ( strncmp( argv[ 2 ], "-j", 2 ) == 0 )
-        {
-            char* num = &argv[ 2 ][ 2 ];
-
-            int arg_num = atoi( num );
-            if ( arg_num != 0 )
-            {
-                if ( arg_num <= initial_core_numbers )
-                {
-                    core_number = arg_num;
-                }
-            }
+    if (verbose) {
+        for (const auto& wav : wav_files) {
+            std::cout << wav << std::endl;
         }
+    } else {
+        std::cout << "Use --verbose to see the list of files" << std::endl;
     }
 
-   core::EncoderFLAC encoder( common::AudioFormatType::FLAC, core_number );
+    // Start encoding
+    std::cout << "Starting encoding with " << threads << " threads..." << std::endl;
+    error = encoder->start_encoding();
 
-   auto error = encoder.scan_input_directory( path );
+    if (error != common::ErrorCode::ERROR_NONE) {
+        std::cerr << "Error during encoding: " << error_to_string(error) << std::endl;
+        return 1;
+    }
 
-   if ( error != common::ErrorCode::ERROR_NONE )
-   {
-       std::cerr << "Error while scanning the input directory: " <<
-                    error_to_string( error ) << std::endl;
-
-       return 0;
-   }
-
-   const auto& wav_files = encoder.get_input_files( );
-
-   if ( !wav_files.empty( ) )
-   {
-       std::cout << "Found " << wav_files.size( ) <<
-                    " valid WAV files to be encoded using " <<
-                    encoder.get_encoder_version( ) << ":" << std::endl;
-
-       for ( const auto wav : wav_files )
-       {
-           std::cout << wav << std::endl;
-       }
-
-       error = encoder.start_encoding( );
-   }
-
+    std::cout << "Encoding completed successfully!" << std::endl;
     return 0;
 }
 

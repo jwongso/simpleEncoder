@@ -37,15 +37,15 @@ find_library(FLAC_LIB
     PATHS ${CMAKE_LIBRARY_PATH}
 )
 
+find_path(CLI_INCLUDE_DIR CLI/CLI.hpp)
+
 cmake_policy(SET CMP0167 OLD)
 
 set(CORE_SRC
-    core/Decoder.cpp
     core/DecoderWAV.cpp
-    core/Encoder.cpp
     core/EncoderMP3.cpp
     core/EncoderOpus.cpp
-    core/EncoderFLAC.cpp  # Added EncoderFLAC.cpp
+    core/EncoderFLAC.cpp
 )
 
 set(UTILS_SRC
@@ -78,7 +78,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE ${LAME_LIB}
     PRIVATE ${OPUS_LIB}
     PRIVATE ${OPUSENC_LIB}
-    PRIVATE ${FLAC_LIB}  # Added FLAC library
+    PRIVATE ${FLAC_LIB}
     PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
 target_include_directories(${PROJECT_NAME}
@@ -86,7 +86,8 @@ target_include_directories(${PROJECT_NAME}
     SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}
     SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}/opus
     SYSTEM PUBLIC ${OPUSENC_INCLUDE_DIR}
-    SYSTEM PUBLIC ${FLAC_INCLUDE_DIR}  # Added FLAC include directory
+    SYSTEM PUBLIC ${FLAC_INCLUDE_DIR}
+    SYSTEM PUBLIC ${CLI_INCLUDE_DIR}/CLI
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)

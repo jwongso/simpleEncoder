@@ -28,45 +28,28 @@ namespace core
 class EncoderMP3 : public Encoder
 {
 public:
+    EncoderMP3(common::AudioFormatType input_type, uint16_t thread_number, bool verbose);
+    virtual ~EncoderMP3();
 
-    typedef std::function< void( const std::string&, const std::string& ) > Callback;
+    const std::string& get_encoder_version() const;
 
+    virtual common::ErrorCode start_encoding() override;
+    virtual common::ErrorCode cancel_encoding() override;
+
+private:
     struct EncoderThreadArg
     {
         uint32_t thread_id;
-        std::map< std::string, bool >* input_files;
-        bool* cancelled;
-        Callback callback;
+        std::map<std::string, bool>* input_files;
+        std::atomic<bool>* cancelled;
+        std::function<void(const std::string&, const std::string&)> callback;
+        bool verbose;
+        std::string output_directory;
     };
 
-public:
-
-    EncoderMP3( common::AudioFormatType input_type, uint16_t thread_number = 1 );
-
-    ~EncoderMP3( ) override;
-
-    const std::string& get_encoder_version( ) const;
-
-    common::ErrorCode start_encoding( ) override;
-
-    common::ErrorCode cancel_encoding( ) override;
-
-protected:
-
-    void on_encoding_status( const std::string& key, const std::string& value );
-
-private:
-
-    static void* processing_files( void* arg );
-
-private:
-
-    std::string m_encoder_version;
-    uint16_t m_thread_number;
-    std::map< std::string, bool > m_to_be_encoded_files;
-    bool m_cancelled;
-    std::deque< std::string > m_status;
-    mutable std::mutex m_mutex;
+    static void* processing_files(void* arg);
+    void on_encoding_status(const std::string& key, const std::string& value);
+    static std::string get_flac_version();
 };
 
 } // core
