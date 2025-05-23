@@ -65,6 +65,28 @@ TEST_F(FileSystemHelperTest, CanonicalPath)
     EXPECT_FALSE(fs_helper.canonical_path(non_existent, result));
 }
 
+TEST_F(FileSystemHelperTest, CanonicalPath_EmptyString_ReturnsFalse) {
+    std::string result;
+    EXPECT_FALSE(fs_helper.canonical_path("", result));
+    EXPECT_TRUE(result.empty());  // Ensure 'out' is unchanged
+}
+
+TEST_F(FileSystemHelperTest, FileExists_Symlink_ReturnsTrueForValidSymlink) {
+    fs::path symlink_path = test_dir / "test_symlink.txt";
+    fs::create_symlink(test_file, symlink_path);
+    EXPECT_TRUE(fs_helper.file_exists(symlink_path.string()));
+}
+
+TEST_F(FileSystemHelperTest, FileExists_InvalidPath_ReturnsFalse) {
+    EXPECT_FALSE(fs_helper.file_exists("/invalid/\0path"));  // Null byte in path
+}
+
+TEST_F(FileSystemHelperTest, DirectoryExists_SymlinkToDir_ReturnsTrue) {
+    fs::path symlink_dir = test_dir / "symlink_dir";
+    fs::create_symlink(nested_dir, symlink_dir);
+    EXPECT_TRUE(fs_helper.directory_exists(symlink_dir.string()));
+}
+
 TEST_F(FileSystemHelperTest, FileExists)
 {
     EXPECT_TRUE(fs_helper.file_exists(test_file.string()));
@@ -82,6 +104,28 @@ TEST_F(FileSystemHelperTest, DirectoryExists)
     EXPECT_FALSE(fs_helper.directory_exists("")); // Empty string
 }
 
+TEST_F(FileSystemHelperTest, ReadBinaryFile_Uint8_EmptyFile_ReturnsTrue) {
+    fs::path empty_file = test_dir / "empty.bin";
+    { std::ofstream(empty_file).close(); }  // Explicitly create empty file
+
+    std::vector<uint8_t> contents = {0xDE, 0xAD};  // Pre-populate with dummy data
+    EXPECT_TRUE(fs_helper.read_binary_file(empty_file.string(), contents));
+    EXPECT_TRUE(contents.empty());  // Should be empty after reading empty file
+}
+
+TEST_F(FileSystemHelperTest, ReadBinaryFile_Uint8_LargeFile_ReturnsTrue) {
+    fs::path large_file = test_dir / "large.bin";
+    std::vector<uint8_t> large_data(1'000'000, 0xAB);  // 1MB file
+    std::ofstream(large_file, std::ios::binary).write(
+        reinterpret_cast<const char*>(large_data.data()),
+        large_data.size()
+    );
+
+    std::vector<uint8_t> contents;
+    EXPECT_TRUE(fs_helper.read_binary_file(large_file.string(), contents));
+    EXPECT_EQ(large_data, contents);
+}
+
 TEST_F(FileSystemHelperTest, ReadBinaryFileUint8)
 {
     std::vector<uint8_t> contents;
@@ -94,6 +138,31 @@ TEST_F(FileSystemHelperTest, ReadBinaryFileUint8)
 
     // Test with non-existent file
     EXPECT_FALSE(fs_helper.read_binary_file((test_dir / "non_existent.bin").string(), contents));
+}
+
+TEST_F(FileSystemHelperTest, ReadBinaryFile_Int16_OddSizeFile_ReturnsFalse) {
+    fs::path odd_file = test_dir / "odd_size.bin";
+    std::ofstream(odd_file, std::ios::binary).write("\x01\x02\x03", 3);  // 3 bytes (1.5 int16_t)
+
+    std::vector<int16_t> contents;
+    EXPECT_FALSE(fs_helper.read_binary_file(odd_file.string(), contents));  // Should FAIL for odd sizes
+    EXPECT_TRUE(contents.empty());  // Should be empty on failure
+}
+
+TEST_F(FileSystemHelperTest, ReadBinaryFile_Int16_ValidFile_ReturnsTrue) {
+    fs::path valid_file = test_dir / "valid_int16.bin";
+    const int16_t test_data[] = {0x0101, 0x0202, 0x0303};
+    std::ofstream(valid_file, std::ios::binary).write(
+        reinterpret_cast<const char*>(test_data),
+        sizeof(test_data)
+    );
+
+    std::vector<int16_t> contents;
+    EXPECT_TRUE(fs_helper.read_binary_file(valid_file.string(), contents));
+    EXPECT_EQ(3, contents.size());
+    EXPECT_EQ(0x0101, contents[0]);
+    EXPECT_EQ(0x0202, contents[1]);
+    EXPECT_EQ(0x0303, contents[2]);
 }
 
 TEST_F(FileSystemHelperTest, ReadBinaryFileInt16)
@@ -113,6 +182,15 @@ TEST_F(FileSystemHelperTest, ReadBinaryFileInt16)
 
     // Test with non-existent file
     EXPECT_FALSE(fs_helper.read_binary_file((test_dir / "non_existent.bin").string(), contents));
+}
+
+TEST_F(FileSystemHelperTest, GetFilePaths_EmptyDirectory_ReturnsTrue) {
+    fs::path empty_dir = test_dir / "empty_dir";
+    fs::create_directory(empty_dir);
+
+    std::vector<std::string> paths;
+    EXPECT_TRUE(fs_helper.get_file_paths(empty_dir.string(), paths));
+    EXPECT_TRUE(paths.empty());
 }
 
 TEST_F(FileSystemHelperTest, GetFilePaths)
@@ -138,6 +216,16 @@ TEST_F(FileSystemHelperTest, GetFilePaths)
     EXPECT_TRUE(file_paths.empty());
 }
 
+TEST_F(FileSystemHelperTest, GetFilePaths_NoPermission_ReturnsFalse) {
+    fs::path locked_dir = test_dir / "locked_dir";
+    fs::create_directory(locked_dir);
+    fs::permissions(locked_dir, fs::perms::none);
+
+    std::vector<std::string> paths;
+    EXPECT_FALSE(fs_helper.get_file_paths(locked_dir.string(), paths));
+    fs::permissions(locked_dir, fs::perms::all);  // Cleanup
+}
+
 TEST_F(FileSystemHelperTest, EnsureDirectoryExists)
 {
     // Test with existing directory
@@ -157,6 +245,40 @@ TEST_F(FileSystemHelperTest, EnsureDirectoryExists)
 
     // Test with a file path (should fail)
     EXPECT_FALSE(fs_helper.ensure_directory_exists(test_file.string()));
+}
+
+TEST_F(FileSystemHelperTest, EnsureDirectoryExists_ExistingFile_ReturnsFalse) {
+    EXPECT_FALSE(fs_helper.ensure_directory_exists(test_file.string()));
+}
+
+TEST_F(FileSystemHelperTest, CanonicalPath_RelativePath_ResolvesCorrectly) {
+    // Change to test directory to ensure consistent relative paths
+    fs::current_path(test_dir);
+
+    std::string result;
+    std::string relative_path = "./" + test_file.filename().string();
+
+    EXPECT_TRUE(fs_helper.canonical_path(relative_path, result));
+    EXPECT_EQ(fs::canonical(test_file).string(), result);
+
+    // Restore original working directory
+    fs::current_path(fs::temp_directory_path());
+}
+
+TEST_F(FileSystemHelperTest, CanonicalPath_ParentDirectory_ResolvesCorrectly) {
+    fs::current_path(nested_dir);  // cd into nested dir
+
+    std::string result;
+    EXPECT_TRUE(fs_helper.canonical_path("../test_file.txt", result));
+    EXPECT_EQ(fs::canonical(test_file).string(), result);
+
+    fs::current_path(fs::temp_directory_path());
+}
+
+TEST_F(FileSystemHelperTest, CanonicalPath_InvalidRelative_ReturnsFalse) {
+    std::string result;
+    EXPECT_FALSE(fs_helper.canonical_path("./non_existent_file.txt", result));
+    EXPECT_EQ("./non_existent_file.txt", result);  // Preserve input
 }
 
 int main(int argc, char **argv) {

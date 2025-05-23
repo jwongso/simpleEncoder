@@ -102,24 +102,30 @@ iterate_directory( const std::string& path, bool recursive, bool skip_directorie
 // ------------------------------------------------------------------------------------------------
 
 bool
-FileSystemHelper::canonical_path( const std::string& in, std::string& out )
-{
-    const char* cstr_in = in.c_str( );
-    char cstr_out[ PATH_MAX ];
-    char* out_ptr;
-
-    out_ptr = realpath( cstr_in, cstr_out );
-
-    if ( !out_ptr )
-    {
-        out.assign( cstr_in );
-
+FileSystemHelper::canonical_path(const std::string& in, std::string& out) {
+    if (in.empty()) {
+        out = in;
         return false;
     }
 
-    out.assign( out_ptr );
+    namespace fs = std::filesystem;
 
-    return true;
+    try {
+        // Use std::filesystem for robust path handling
+        fs::path p(in);
+
+        // Handle relative paths by combining with current path
+        if (p.is_relative()) {
+            p = fs::current_path() / p;
+        }
+
+        // Normalize path (resolves ., .., etc.)
+        out = fs::canonical(p).string();
+        return true;
+    } catch (const fs::filesystem_error&) {
+        out = in;  // Preserve input on failure
+        return false;
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -155,72 +161,63 @@ FileSystemHelper::directory_exists( const std::string& directory_path )
 // -------------------------------------------------------------------------------------------------
 
 bool
-FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< uint8_t >& contents )
-{
-    if ( !FileSystemHelper::file_exists( file_path ) )
-    {
+FileSystemHelper::read_binary_file(const std::string& file_path,
+                                      std::vector<uint8_t>& contents) {
+    if (!file_exists(file_path)) {
         return false;
     }
 
-    FILE* fp;
-
-    fp = ::fopen( file_path.c_str( ), "rb" );
-
-    if ( !fp )
-    {
+    std::ifstream file(file_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
         return false;
     }
 
-    ::fseek( fp, 0, SEEK_END );
-    const auto file_size = ::ftell( fp );
-    ::fseek( fp, 0, SEEK_SET );
+    std::streamsize file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-    contents.clear( );
-    contents.resize(file_size / sizeof(uint8_t));
+    contents.clear();  // Ensure empty if file_size == 0
+    if (file_size > 0) {
+        contents.resize(file_size);
+        file.read(reinterpret_cast<char*>(contents.data()), file_size);
+    }
 
-    size_t readItems = ::fread( &contents[ 0 ], file_size, 1, fp );
-    ::fclose( fp );
-
-    return readItems == 1;
+    return !file.fail();
 }
 
 // -------------------------------------------------------------------------------------------------
 
 bool
-FileSystemHelper::read_binary_file( const std::string& file_path, std::vector< int16_t >& contents )
-{
-    if ( !FileSystemHelper::file_exists( file_path ) )
-    {
+FileSystemHelper::read_binary_file(const std::string& file_path,
+                                   std::vector<int16_t>& contents) {
+    if (!file_exists(file_path)) {
         return false;
     }
 
-    FILE* fp;
-
-    fp = ::fopen( file_path.c_str( ), "rb" );
-
-    if ( !fp )
-    {
+    std::ifstream file(file_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
         return false;
     }
 
-    ::fseek( fp, 0, SEEK_END );
-    const auto file_size = ::ftell( fp );
-    ::fseek( fp, 0, SEEK_SET );
+    std::streamsize file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
-    contents.clear( );
-    contents.resize(file_size / sizeof(int16_t));
+    contents.clear();  // Ensure empty if file_size == 0
+    if (file_size > 0) {
+        if (file_size % sizeof(int16_t) != 0) {
+            return false;  // Invalid size for int16_t array
+        }
+        contents.resize(file_size / sizeof(int16_t));
+        file.read(reinterpret_cast<char*>(contents.data()), file_size);
+    }
 
-    size_t readItems = ::fread( ( char* )&contents[ 0 ], file_size, 1, fp );
-    ::fclose( fp );
-
-    return readItems == 1;
+    return !file.fail();
 }
 
 // -------------------------------------------------------------------------------------------------
 
 bool
 FileSystemHelper::get_file_paths( const std::string& directory_path,
-                            std::vector< std::string >& file_paths )
+                                  std::vector< std::string >& file_paths )
 {
     // Iterate the directory contents recursively.
     bool status;
