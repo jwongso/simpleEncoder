@@ -43,9 +43,6 @@ cmake_policy(SET CMP0167 OLD)
 
 set(CORE_SRC
     core/DecoderWAV.cpp
-    core/EncoderMP3.cpp
-    core/EncoderOpus.cpp
-    core/EncoderFLAC.cpp
 )
 
 set(UTILS_SRC
@@ -102,23 +99,23 @@ if(BUILD_TESTS)
     )
 
     # Create test executable
-    add_executable(fileSystemHelper_utest ${TEST_SRC} ${UTILS_SRC})
+    add_executable(fileSystemHelper_test ${TEST_SRC} ${UTILS_SRC})
 
     # Link against GTest and other required libraries
-    target_link_libraries(fileSystemHelper_utest
+    target_link_libraries(fileSystemHelper_test
         PRIVATE GTest::GTest
         PRIVATE GTest::Main
         PRIVATE ${CMAKE_THREAD_LIBS_INIT}
     )
 
     # Include directories
-    target_include_directories(fileSystemHelper_utest
+    target_include_directories(fileSystemHelper_test
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${GTEST_INCLUDE_DIRS}
     )
 
     # Add tests to CTest
-    add_test(NAME UnitTests COMMAND fileSystemHelper_utest)
+    add_test(NAME UnitTests COMMAND fileSystemHelper_test)
 
     message(STATUS "Tests are enabled and will be built")
 endif()

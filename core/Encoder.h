@@ -24,9 +24,10 @@
 #include "utils/WaveHeader.h"
 #include "utils/WaveFileWrapper.h"
 
+static pthread_mutex_t process_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 namespace core
 {
-
 class Encoder
 {
 public:
@@ -81,8 +82,84 @@ public:
     }
 
     virtual const std::string& get_encoder_version() const = 0;
-    virtual common::ErrorCode start_encoding() = 0;
-    virtual common::ErrorCode cancel_encoding() = 0;
+
+    common::ErrorCode start_encoding() {
+        if (m_input_files.empty()) {
+            return common::ErrorCode::ERROR_NOT_FOUND;
+        }
+
+        m_cancelled = false;
+        m_to_be_encoded_files.clear();
+        for (const auto& file : m_input_files) {
+            m_to_be_encoded_files[file] = false;
+        }
+
+        std::vector<pthread_t> threads(m_thread_number);
+        pthread_attr_t thread_attr;
+        pthread_attr_init(&thread_attr);
+        pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_JOINABLE);
+
+        // Thread arguments
+        struct ThreadTask {
+            Encoder* encoder;
+            std::string output_dir;
+            uint32_t thread_id;
+        };
+
+        auto worker = [](void* arg) -> void* {
+            ThreadTask* task = static_cast<ThreadTask*>(arg);
+            std::string input_file;
+
+            // Thread-safe file acquisition
+            pthread_mutex_lock(&process_mutex);
+            for (auto& [file, processed] : task->encoder->m_to_be_encoded_files) {
+                if (!processed) {
+                    input_file = file;
+                    processed = true;
+                    break;
+                }
+            }
+            pthread_mutex_unlock(&process_mutex);
+
+            if (!input_file.empty()) {
+                task->encoder->process_single_file(
+                    input_file,
+                    task->output_dir,
+                    task->thread_id,
+                    [task](auto&& k, auto&& v) {
+                        task->encoder->on_encoding_status(k, v);
+                    }
+                );
+            }
+            return nullptr;
+        };
+
+        std::vector<ThreadTask> tasks(m_thread_number);
+        for (uint32_t i = 0; i < m_thread_number; ++i) {
+            tasks[i] = {
+                .encoder = this,
+                .output_dir = m_output_directory,
+                .thread_id = i + 1
+            };
+
+            if (pthread_create(&threads[i], &thread_attr, worker, &tasks[i]) != 0) {
+                return common::ErrorCode::ERROR_PTHREAD_CREATE;
+            }
+        }
+
+        pthread_attr_destroy(&thread_attr);
+        for (auto& thread : threads) {
+            pthread_join(thread, nullptr);
+        }
+
+        return common::ErrorCode::ERROR_NONE;
+    }
+
+    virtual common::ErrorCode cancel_encoding()
+    {
+        m_cancelled = true;
+        return common::ErrorCode::ERROR_CANCELLED;
+    }
 
 protected:
     Encoder(common::AudioFormatType input_type,
@@ -98,6 +175,36 @@ protected:
     , m_cancelled(cancelled)
     , m_verbose(verbose)
     {}
+
+    struct EncoderThreadArg
+    {
+        uint32_t thread_id;
+        std::map<std::string, bool>* input_files;
+        std::atomic<bool>* cancelled;
+        std::function<void(const std::string&, const std::string&)> callback;
+        bool verbose;
+        std::string output_directory;
+        Encoder* encoder;  // Pointer to the encoder instance
+    };
+
+    virtual common::ErrorCode process_single_file(
+        const std::string& input_file,
+        const std::string& output_dir,
+        uint32_t thread_id,
+        const std::function<void(const std::string&, const std::string&)>& status_cb) = 0;
+
+    void on_encoding_status(const std::string& key, const std::string& value)
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+
+        std::string log = key + " " + value;
+        m_status.emplace_back(log);
+
+        if (m_verbose)
+        {
+            std::cout << log << std::endl;
+        }
+    }
 
 protected:
     common::AudioFormatType m_input_type;
