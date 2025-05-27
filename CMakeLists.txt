@@ -37,6 +37,25 @@ find_library(FLAC_LIB
     PATHS ${CMAKE_LIBRARY_PATH}
 )
 
+# Find FFmpeg libraries
+find_path(FFMPEG_INCLUDE_DIR ffmpeg/libavcodec/avcodec.h)
+find_library(AVCODEC_LIB
+    NAMES avcodec
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+find_library(AVFORMAT_LIB
+    NAMES avformat
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+find_library(AVUTIL_LIB
+    NAMES avutil
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+find_library(SWRESAMPLE_LIB
+    NAMES swresample
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+
 find_path(CLI_INCLUDE_DIR CLI/CLI.hpp)
 
 cmake_policy(SET CMP0167 OLD)
@@ -72,6 +91,10 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE ${OPUS_LIB}
     PRIVATE ${OPUSENC_LIB}
     PRIVATE ${FLAC_LIB}
+    PRIVATE ${AVCODEC_LIB}
+    PRIVATE ${AVFORMAT_LIB}
+    PRIVATE ${AVUTIL_LIB}
+    PRIVATE ${SWRESAMPLE_LIB}
     PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
 target_include_directories(${PROJECT_NAME}
@@ -80,6 +103,7 @@ target_include_directories(${PROJECT_NAME}
     SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}/opus
     SYSTEM PUBLIC ${OPUSENC_INCLUDE_DIR}
     SYSTEM PUBLIC ${FLAC_INCLUDE_DIR}
+    SYSTEM PUBLIC ${FFMPEG_INCLUDE_DIR}/ffmpeg
     SYSTEM PUBLIC ${CLI_INCLUDE_DIR}/CLI
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

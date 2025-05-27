@@ -37,7 +37,7 @@ enum class AudioFormatType
     AIFF,
     // Lossy compressed
     MP3,
-    ACC,
+    AAC,
     VORBIS,
     WMA,
     OPUS,
@@ -65,7 +65,8 @@ enum ErrorCode
     ERROR_OPUS,
     ERROR_FLAC,
     ERROR_BUSY,
-    ERROR_IO
+    ERROR_IO,
+    ERROR_FFMPEG
 };
 
 } // core
