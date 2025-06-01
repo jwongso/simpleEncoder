@@ -62,6 +62,37 @@ void resampleTo48kHz(const int16_t* input, int input_samples, int input_rate, in
 namespace core
 {
 
+/**
+ * @class EncoderOpus
+ * @brief Opus encoder implementation using libopus and libopusenc libraries.
+ *
+ * This class provides Opus encoding functionality for converting WAV audio files
+ * to Opus format. It utilizes the libopus and libopusenc libraries for high-quality,
+ * low-latency audio compression optimized for both speech and music content.
+ *
+ * Key features:
+ * - High-quality audio compression with excellent quality-to-bitrate ratio
+ * - Automatic resampling to 48kHz (Opus standard sample rate)
+ * - Support for mono and stereo audio
+ * - Configurable bitrate encoding (default: 128 kbps)
+ * - Low-latency encoding suitable for real-time applications
+ * - Thread-safe encoding operations
+ * - Comprehensive error handling and status reporting
+ *
+ * Technical details:
+ * - Output format: Opus in OGG container (.opus files)
+ * - Sample rate: 48kHz (automatic resampling from input)
+ * - Default bitrate: 128 kbps
+ * - Frame size: 960 samples (20ms at 48kHz)
+ * - Complexity: 10 (highest quality)
+ * - Supported input: WAV files (various sample rates, automatically resampled)
+ * - Channels: Mono and stereo
+ *
+ * @note This encoder requires libopus and libopusenc libraries to be installed.
+ *       Input audio is automatically resampled to 48kHz as required by the Opus standard.
+ *       The encoder uses a simplified linear interpolation for resampling.
+ * @see Encoder base class for common functionality
+ */
 class EncoderOpus : public Encoder
 {
 public:

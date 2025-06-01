@@ -31,27 +31,57 @@ const std::string MP3_EXT = ".mp3";
 namespace core
 {
 
+/**
+ * @class EncoderMP3
+ * @brief MP3 encoder class that handles encoding WAV files to MP3 format.
+ *
+ * This class provides functionality to encode audio data from WAV format to MP3 using the LAME library.
+ */
 class EncoderMP3 : public Encoder
 {
 public:
-    EncoderMP3( common::AudioFormatType input_type, uint16_t thread_number, bool m_verbose )
+    /**
+     * @brief Constructor for EncoderMP3.
+     * @param input_type The input audio format type (typically WAV).
+     * @param thread_number The number of threads to use for parallel encoding.
+     * @param verbose Verbose mode flag for detailed logging during encoding.
+     * 
+     * Initializes the MP3 encoder with LAME library version information and
+     * sets up the encoder for multi-threaded operation.
+     */
+    EncoderMP3( common::AudioFormatType input_type, uint16_t thread_number, bool verbose )
     : Encoder( input_type,
            common::AudioFormatType::MP3,
            LAME + get_lame_version( ),
            thread_number,
            false,
-           m_verbose)
+           verbose)
     {
     }
 
+    /**
+     * @brief Destructor for EncoderMP3.
+     */
     virtual ~EncoderMP3( ) {}
 
+    /**
+     * @brief Gets the version of the encoder.
+     * @return The encoder version string.
+     */
     const std::string& get_encoder_version( ) const
     {
         return m_encoder_version;
     }
 
 private:
+    /**
+     * @brief Processes a single file for encoding.
+     * @param input_file The path to the input WAV file.
+     * @param output_dir The directory to save the output MP3 file.
+     * @param thread_id The ID of the thread processing this file.
+     * @param status_cb Callback function for status updates.
+     * @return Error code indicating success or failure.
+     */
     common::ErrorCode process_single_file(
         const std::string& input_file,
         const std::string& output_dir,

@@ -37,6 +37,21 @@ find_library(FLAC_LIB
     PATHS ${CMAKE_LIBRARY_PATH}
 )
 
+# Find Vorbis libraries
+find_path(VORBIS_INCLUDE_DIR vorbis/vorbisenc.h)
+find_library(VORBIS_LIB
+    NAMES vorbis
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+find_library(VORBISENC_LIB
+    NAMES vorbisenc
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+find_library(OGG_LIB
+    NAMES ogg
+    PATHS ${CMAKE_LIBRARY_PATH}
+)
+
 # Find FFmpeg libraries
 find_path(FFMPEG_INCLUDE_DIR ffmpeg/libavcodec/avcodec.h)
 find_library(AVCODEC_LIB
@@ -66,9 +81,7 @@ set(CORE_SRC
 
 set(UTILS_SRC
     utils/FileSystemHelper.cpp
-    utils/Helper.cpp
     utils/Mp3FileWrapper.cpp
-    utils/WaveFileWrapper.cpp
 )
 
 set(SOURCE
@@ -91,6 +104,9 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE ${OPUS_LIB}
     PRIVATE ${OPUSENC_LIB}
     PRIVATE ${FLAC_LIB}
+    PRIVATE ${VORBIS_LIB}
+    PRIVATE ${VORBISENC_LIB}
+    PRIVATE ${OGG_LIB}
     PRIVATE ${AVCODEC_LIB}
     PRIVATE ${AVFORMAT_LIB}
     PRIVATE ${AVUTIL_LIB}
@@ -103,6 +119,7 @@ target_include_directories(${PROJECT_NAME}
     SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}/opus
     SYSTEM PUBLIC ${OPUSENC_INCLUDE_DIR}
     SYSTEM PUBLIC ${FLAC_INCLUDE_DIR}
+    SYSTEM PUBLIC ${VORBIS_INCLUDE_DIR}
     SYSTEM PUBLIC ${FFMPEG_INCLUDE_DIR}/ffmpeg
     SYSTEM PUBLIC ${CLI_INCLUDE_DIR}/CLI
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -120,10 +137,13 @@ if(BUILD_TESTS)
     # Create a list of test files
     set(TEST_SRC
         tests/FileSystemHelperTest.cpp
+        tests/HelperTest.cpp
+        tests/WaveFileWrapperTest.cpp
+        tests/EncoderFunctionalTest.cpp
     )
 
-    # Create test executable
-    add_executable(fileSystemHelper_test ${TEST_SRC} ${UTILS_SRC})
+    # Create test executable for FileSystemHelper
+    add_executable(fileSystemHelper_test tests/FileSystemHelperTest.cpp ${UTILS_SRC})
 
     # Link against GTest and other required libraries
     target_link_libraries(fileSystemHelper_test
@@ -139,7 +159,103 @@ if(BUILD_TESTS)
     )
 
     # Add tests to CTest
-    add_test(NAME UnitTests COMMAND fileSystemHelper_test)
+    add_test(NAME FileSystemHelperTests COMMAND fileSystemHelper_test)
+
+    # Create test executable for Helper
+    add_executable(helper_test tests/HelperTest.cpp utils/FileSystemHelper.cpp)
+
+    # Link against GTest and other required libraries
+    target_link_libraries(helper_test
+        PRIVATE GTest::GTest
+        PRIVATE GTest::Main
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    # Include directories
+    target_include_directories(helper_test
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${GTEST_INCLUDE_DIRS}
+    )
+
+    # Add tests to CTest
+    add_test(NAME HelperTests COMMAND helper_test)
+
+    # Create test executable for WaveFileWrapper
+    add_executable(waveFileWrapper_test tests/WaveFileWrapperTest.cpp utils/FileSystemHelper.cpp)
+
+    # Link against GTest and other required libraries
+    target_link_libraries(waveFileWrapper_test
+        PRIVATE GTest::GTest
+        PRIVATE GTest::Main
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    # Include directories
+    target_include_directories(waveFileWrapper_test
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${GTEST_INCLUDE_DIRS}
+    )
+
+    # Add tests to CTest
+    add_test(NAME WaveFileWrapperTests COMMAND waveFileWrapper_test)
+
+    # Create comprehensive encoder functional test executable
+    add_executable(encoder_functional_test tests/EncoderFunctionalTest.cpp ${CORE_SRC} ${UTILS_SRC})
+
+    # Link against GTest and all encoder libraries
+    target_link_libraries(encoder_functional_test
+        PRIVATE GTest::GTest
+        PRIVATE GTest::Main
+        PRIVATE ${LAME_LIB}
+        PRIVATE ${OPUS_LIB}
+        PRIVATE ${OPUSENC_LIB}
+        PRIVATE ${FLAC_LIB}
+        PRIVATE ${VORBIS_LIB}
+        PRIVATE ${VORBISENC_LIB}
+        PRIVATE ${OGG_LIB}
+        PRIVATE ${AVCODEC_LIB}
+        PRIVATE ${AVFORMAT_LIB}
+        PRIVATE ${AVUTIL_LIB}
+        PRIVATE ${SWRESAMPLE_LIB}
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    # Include directories for encoder test
+    target_include_directories(encoder_functional_test
+        SYSTEM PUBLIC ${MP3LAME_INCLUDE_DIR}
+        SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}
+        SYSTEM PUBLIC ${OPUS_INCLUDE_DIR}/opus
+        SYSTEM PUBLIC ${OPUSENC_INCLUDE_DIR}
+        SYSTEM PUBLIC ${FLAC_INCLUDE_DIR}
+        SYSTEM PUBLIC ${VORBIS_INCLUDE_DIR}
+        SYSTEM PUBLIC ${FFMPEG_INCLUDE_DIR}/ffmpeg
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${GTEST_INCLUDE_DIRS}
+    )
+
+    # Add encoder functional tests to CTest
+    add_test(NAME EncoderFunctionalTests COMMAND encoder_functional_test)
+
+    # Create audio validation test executable
+    add_executable(audio_validation_test tests/AudioValidationTest.cpp ${UTILS_SRC})
+
+    # Link against GTest and required libraries
+    target_link_libraries(audio_validation_test
+        PRIVATE GTest::GTest
+        PRIVATE GTest::Main
+        PRIVATE ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    # Include directories for validation test
+    target_include_directories(audio_validation_test
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${GTEST_INCLUDE_DIRS}
+    )
+
+    # Add audio validation tests to CTest
+    add_test(NAME AudioValidationTests COMMAND audio_validation_test)
 
     message(STATUS "Tests are enabled and will be built")
+    message(STATUS "Encoder functional tests included")
+    message(STATUS "Audio validation tests included")
 endif()

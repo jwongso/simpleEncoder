@@ -1,3 +1,14 @@
+// -------------------------------------------------------------------------------------------------
+//
+// Copyright (C) all of the contributors. All rights reserved.
+//
+// This software, including documentation, is protected by copyright controlled by
+// contributors. All rights are reserved. Copying, including reproducing, storing,
+// adapting or translating, any or all of this material requires the prior written
+// consent of all contributors.
+//
+// -------------------------------------------------------------------------------------------------
+
 #ifndef ENCODER_AAC_H
 #define ENCODER_AAC_H
 
@@ -23,6 +34,13 @@ extern "C" {
 const std::string FFMPEG_AAC = "FFmpeg AAC ";
 const std::string AAC_EXT = ".aac";
 
+/**
+ * @brief Determines the best available AAC encoder.
+ * @return String identifier for the encoder ("libfdk_aac" if available, otherwise "FFmpeg AAC").
+ * 
+ * This function checks for the availability of the high-quality libfdk_aac encoder
+ * and falls back to the built-in FFmpeg AAC encoder if libfdk_aac is not available.
+ */
 std::string get_encoder_name() {
     const AVCodec* codec = avcodec_find_encoder_by_name("libfdk_aac");
     return (codec) ? "libfdk_aac" : "FFmpeg AAC";
@@ -31,6 +49,35 @@ std::string get_encoder_name() {
 namespace core
 {
 
+/**
+ * @class EncoderAAC
+ * @brief AAC encoder implementation using FFmpeg libraries.
+ *
+ * This class provides AAC (Advanced Audio Coding) encoding functionality for converting
+ * WAV audio files to AAC format. It utilizes FFmpeg's libavcodec for encoding operations
+ * and supports both the high-quality libfdk_aac encoder (if available) and the built-in
+ * FFmpeg AAC encoder as a fallback.
+ *
+ * Key features:
+ * - Automatic encoder selection (libfdk_aac preferred, FFmpeg AAC fallback)
+ * - Configurable bitrate encoding (default: 128 kbps)
+ * - Support for mono and stereo audio
+ * - Automatic sample format conversion and resampling
+ * - Thread-safe encoding operations
+ * - ADTS container format output
+ * - Comprehensive error handling and status reporting
+ *
+ * Technical details:
+ * - Output format: AAC in ADTS container (.aac files)
+ * - Default bitrate: 128 kbps
+ * - Supported input: WAV files (various sample rates and bit depths)
+ * - Sample format: Automatic conversion to encoder requirements
+ * - Container: ADTS (Audio Data Transport Stream)
+ *
+ * @note This encoder requires FFmpeg libraries (libavcodec, libavformat, libavutil, libswresample)
+ *       to be installed. For best quality, libfdk_aac is recommended but not required.
+ * @see Encoder base class for common functionality
+ */
 class EncoderAAC : public Encoder
 {
 public:

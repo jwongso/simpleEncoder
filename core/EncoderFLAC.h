@@ -58,6 +58,38 @@ void metadata_callback(const FLAC__StreamEncoder *encoder,
 namespace core
 {
 
+/**
+ * @class EncoderFLAC
+ * @brief FLAC encoder implementation using libFLAC library.
+ *
+ * This class provides FLAC (Free Lossless Audio Codec) encoding functionality for converting
+ * WAV audio files to FLAC format. It utilizes the libFLAC library for lossless compression
+ * operations, ensuring perfect audio quality preservation while achieving significant file
+ * size reduction.
+ *
+ * Key features:
+ * - Lossless audio compression with configurable compression levels
+ * - Support for mono and stereo audio
+ * - Configurable compression level (default: 5 for balanced speed/compression)
+ * - Verification of encoded data integrity
+ * - Support for various sample rates and bit depths
+ * - Thread-safe encoding operations
+ * - Comprehensive error handling and status reporting
+ *
+ * Technical details:
+ * - Output format: FLAC (.flac files)
+ * - Compression: Lossless (perfect reconstruction)
+ * - Default compression level: 5 (range: 0-8, higher = better compression)
+ * - Supported input: WAV files (8, 16, 24-bit depths)
+ * - Sample rates: 8kHz to 192kHz
+ * - Channels: Mono and stereo
+ * - Verification: Enabled by default for data integrity
+ *
+ * @note This encoder requires libFLAC library to be installed.
+ *       The encoder automatically handles sample format conversion and
+ *       provides built-in verification of the encoded stream.
+ * @see Encoder base class for common functionality
+ */
 class EncoderFLAC : public Encoder
 {
 public:
